@@ -17,5 +17,7 @@ with BlackboardQuiz.Quiz(sys.argv[1][:-4]) as quiz:
     with open(sys.argv[1],'rb') as csvfile:
         reader = csv.reader(csvfile, delimiter=',', quotechar='"', skipinitialspace=True)
         for row in reader:
+            if len(row) == 0:
+                continue
             print row
             quiz.addQuestion(row[0], row[1:], correct=1)
