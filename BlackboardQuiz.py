@@ -86,6 +86,7 @@ class Quiz:
         #Now render the text again but with correct clipping
         buffer_ = StringIO()
         fig.savefig(buffer_, dpi=dpi, format=format_, transparent=True)
+        plt.close(fig)
         return buffer_.getvalue()
 
     def embed_image(self, filename, img_data=None, attrib={'style':'display:block; margin-left:auto; margin-right:auto;'}):
