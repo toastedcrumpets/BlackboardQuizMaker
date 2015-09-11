@@ -20,11 +20,9 @@ with BlackboardQuiz.Quiz(sys.argv[1][:-4]) as quiz:
         for row in reader:
             if len(row) == 0:
                 continue
-            print row
             
             #Shuffle the answers
             answer_idxs = list(range(1, len(row)))
             shuffle(answer_idxs)
             answers = map(lambda x : row[x], answer_idxs)
-            print answers[answer_idxs.index(1)]
-            quiz.addQuestion(row[0], answers, correct=answer_idxs.index(1))
+            quiz.addQuestion(row[0], answers, correct=answer_idxs.index(1)+1)
