@@ -38,6 +38,7 @@ class Quiz:
         resources = etree.SubElement(self.manifest, 'resources')
         resource = etree.SubElement(resources, 'resource', {'baseurl':"res00001", 'file':"res00001.dat", 'identifier':"res00001", 'type':"assessment/x-bb-pool"})
 
+        self.useLaTeX = useLaTeX
         if useLaTeX:
             #Use latex (not mathtex) for better but slower results
             from matplotlib import rc
@@ -115,6 +116,8 @@ class Quiz:
         #First, process the display equations
         in_string = in_string.split('$$')
         for i in range(1, len(in_string), 2):
+            if self.useLaTeX:
+                in_string[i] = (r'\displaystyle ')+in_string[i]
             in_string[i] = self.embed_latex(in_string[i], attrib={'style':'display:block;margin-left:auto;margin-right:auto;'})
         in_string = ''.join(in_string)
 
