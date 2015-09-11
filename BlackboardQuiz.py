@@ -82,6 +82,15 @@ class Quiz:
         fig.savefig(buffer_, dpi=dpi, format=format_, transparent=True)
         return buffer_.getvalue()
 
+    def embed_image(self, filename, img_data=None):
+        """Embeds image data or a file, and returns an img tag.
+        """
+        if img_data == None:
+            with open(filename, mode='rb') as file:
+                img_data = file.read()
+        
+        return '<img src="@X@EmbeddedFile.requestUrlStub@X@bbcswebdav/xid-'+self.addfile(filename, img_data)+'">'
+        
     def embed_latex(self, formula):
         """Renders a LaTeX formula to an image, embeds the image in the quiz
         and returns a img tag which can be used in the text of a
@@ -89,7 +98,7 @@ class Quiz:
         """
         name = "eq"+str(self.equation_counter)+".png"
         self.equation_counter += 1
-        return '<img src="@X@EmbeddedFile.requestUrlStub@X@bbcswebdav/xid-'+self.addfile(name, self.render_latex(formula))+'">'
+        return self.embed_image(name, self.render_latex(formula))
 
     def process_latex(self, in_string):
         """Scan a string for LaTeX equations and process them.
