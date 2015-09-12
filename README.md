@@ -97,14 +97,15 @@ Then I can run `./csv_reader.py MyQuiz.csv` and it will give me a
 question pool called "MyQuiz" in MyQuiz.zip with all the rendered
 latex formula included!
 
-# How the program works Blackboard has an XML file format which it
-uses to upload/download question sets or "pools". This file format
-lets you also send images and this is how the LaTeX support is
-implemented. All strings are searched for `$` which are used to
-indicate a LaTeX string. Each of these are rendered into a png using
-the Matplotlib library. The resulting png images are then directly
-embedded into the zip file and the $$ tags are replaced by html img
-tags which link to these images.
+# How the program works
+
+ Blackboard has an XML file format which it uses to upload/download
+question sets or "pools". This file format lets you also send images
+and this is how the LaTeX support is implemented. All strings are
+searched for `$` which are used to indicate a LaTeX string. Each of
+these are rendered into a png using the Matplotlib library. The
+resulting png images are then directly embedded into the zip file and
+the $$ tags are replaced by html img tags which link to these images.
 
 The main trick was to reverse engineer how blackboard attaches unique
 identifiers to files. This was figured out by reverse engineering
