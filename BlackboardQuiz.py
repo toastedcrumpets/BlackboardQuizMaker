@@ -6,9 +6,19 @@ import time
 import zipfile
 import re
 import os
-import matplotlib.pyplot as plt
-from cStringIO import StringIO
 from xml.sax.saxutils import escape, unescape
+import Image
+
+import subprocess
+dn = os.path.dirname(os.path.realpath(__file__))
+def render_latex(formula):
+    """Renders LaTeX expression to bitmap image data.
+    """
+    subprocess.call([os.path.join(dn, 'tex2im'), formula])
+    im = Image.open('out.png')
+    width, height = im.size
+    contents = open('out.png', 'r+').read()
+    return contents, width, height
 
 class Pool:
     def __init__(self, pool_name, package, description_text="Created by BlackboardQuiz!", preview = True):
@@ -87,7 +97,7 @@ class Pool:
         self.htmlfile += '</li>'
 
 class Package:
-    def __init__(self, courseID="IMPORT", useLaTeX=False):
+    def __init__(self, courseID="IMPORT"):
         """Initialises a Blackboard package
         """
         self.courseID = courseID
@@ -108,12 +118,6 @@ class Package:
         organisation = etree.SubElement(self.manifest, "organization", {'default':'toc00001'})
         etree.SubElement(organisation, 'tableofcontents', {'identifier':'toc00001'})
         self.resources = etree.SubElement(self.manifest, 'resources')
-
-        self.useLaTeX = useLaTeX
-        from matplotlib import rc
-        if self.useLaTeX:
-            #Use latex (not mathtex) for better but slower results
-            rc('text', usetex=True)
             
     def close(self):
         #Write additional data to implement the course name
@@ -250,32 +254,6 @@ class Package:
         output_html += '>'
         return output_bb, output_html
         
-    def render_latex(self, formula, fontsize=12, dpi=150, format_='png'):
-        """Renders LaTeX expression to bitmap image data.
-        """
-        fig = plt.figure()
-        text = fig.text(0, 0, u'${}$'.format(formula), fontsize=fontsize)
-        #Fake render to force matplotlib to determine the actual size of the text
-        buffer_ = StringIO()
-        fig.savefig(buffer_, dpi=dpi, format=format_, transparent=True)
-
-        #Determine the actual size of the text
-        bbox = text.get_window_extent()
-        width, height = bbox.size / float(dpi) + 0.005
-        # Adjust the figure size so it can hold the entire text.
-        fig.set_size_inches((width, height))
-
-        # Adjust text's vertical position.
-        dy = (bbox.ymin/float(dpi))/height
-        text.set_position((0, -dy))
-
-        #Now render the text again but with correct clipping
-        buffer_ = StringIO()
-        fig.savefig(buffer_, dpi=dpi, format=format_, transparent=True)
-        plt.close(fig)
-
-        return buffer_.getvalue(), bbox.size[0], bbox.size[1]
-
     def embed_latex(self, formula, display=False):
         """Renders a LaTeX formula to an image, embeds the image in the quiz
         and returns a img tag which can be used in the text of a
@@ -284,19 +262,17 @@ class Package:
         name = "LaTeX/eq"+str(self.equation_counter)+".png"
         self.equation_counter += 1
 
-
-        img_data, width_px, height_px = self.render_latex(formula)
+        img_data, width_px, height_px = render_latex(formula)
 
         #This gives a 22px=1em height
         width_em = width_px / 22.0
         height_em = height_px / 22.0
         
         if display:
-            if self.useLaTeX:
-                formula = (r'\displaystyle ')+formula
+            formula = (r'\displaystyle ')+formula
             attrib = {'style':'display:block;margin-left:auto;margin-right:auto;height:'+str(height_em)+'em;width:'+str(width_em)+'em;'}
         else:
-            attrib = {'style':'vertical-align:middle; height:'+str(height_em)+'em;width:'+str(width_em)+'em;'}
+            attrib = {'style':'display:inline-block;vertical-align:middle; height:'+str(height_em)+'em;width:'+str(width_em)+'em;'}
 
         attrib['alt'] = escape(formula)
         

@@ -15,7 +15,7 @@ if len(sys.argv) < 3:
     exit()
 
 import os
-with BlackboardQuiz.Package(sys.argv[1], useLaTeX=True) as package:
+with BlackboardQuiz.Package(sys.argv[1]) as package:
     for csv_file_name in sys.argv[2:]:
         if csv_file_name[-4:] != '.csv':
             raise Exception("File "+csv_file_name+" does not end in .csv!")
