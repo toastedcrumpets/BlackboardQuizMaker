@@ -26,7 +26,12 @@ with BlackboardQuiz.Package(sys.argv[1]) as package:
             for row in reader:
                 if len(row) == 0:
                     continue
-            
+                if row[0] == "":
+                    raise Exception("Blank question!")
+
+                #Get rid of any blank answers
+                row = filter(None, row)
+                
                 #Shuffle the answers
                 answer_idxs = list(range(1, len(row)))
                 shuffle(answer_idxs)

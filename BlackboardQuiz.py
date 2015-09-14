@@ -8,17 +8,24 @@ import re
 import os
 from xml.sax.saxutils import escape, unescape
 import Image
+from StringIO import StringIO
 
 import subprocess
 dn = os.path.dirname(os.path.realpath(__file__))
 def render_latex(formula):
     """Renders LaTeX expression to bitmap image data.
     """
-    subprocess.call([os.path.join(dn, 'tex2im'), formula])
-    im = Image.open('out.png')
+
+    subprocess.check_call([os.path.join(dn, 'tex2im'), '-r', '240x240', '{'+formula+'}'])
+
+    with open('out.png', 'rb') as f:
+        data = f.read()
+        
+    im = Image.open(StringIO(data))
     width, height = im.size
-    contents = open('out.png', 'r+').read()
-    return contents, width, height
+    del im
+    
+    return data, width, height
 
 class Pool:
     def __init__(self, pool_name, package, description_text="Created by BlackboardQuiz!", preview = True):
@@ -264,15 +271,15 @@ class Package:
 
         img_data, width_px, height_px = render_latex(formula)
 
-        #This gives a 22px=1em height
-        width_em = width_px / 22.0
-        height_em = height_px / 22.0
+        #This gives a 44px=1em height
+        width_em = width_px / 44.0
+        height_em = height_px / 44.0
         
         if display:
             formula = (r'\displaystyle ')+formula
             attrib = {'style':'display:block;margin-left:auto;margin-right:auto;height:'+str(height_em)+'em;width:'+str(width_em)+'em;'}
         else:
-            attrib = {'style':'display:inline-block;vertical-align:middle; height:'+str(height_em)+'em;width:'+str(width_em)+'em;'}
+            attrib = {'style':'display:inline-block; height:'+str(height_em)+'em;width:'+str(width_em)+'em;'}
 
         attrib['alt'] = escape(formula)
         

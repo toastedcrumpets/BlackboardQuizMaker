@@ -10,10 +10,11 @@ performance) of the blackboard equation editor.
 # Dependencies
 
 This package requires a working installation of python, python-lxml,
-and python-matplotlib. You can install these on ubuntu like so:
+and python-image, imagemagick, and LaTeX. You can install these on
+ubuntu like so:
 
 ```
-sudo apt-get install python-lxml python-matplotlib
+sudo apt-get install python-lxml python-image imagemagick 
 ```
 
 # How to use it (python)
@@ -41,8 +42,7 @@ with BlackboardQuiz.Package("MyBlackboardPackage") as package:
         #Embedding external images is easy too
         pool.addQuestion('I cant believe that you can embed images! <img src="example_image.png"> Cool huh?',
                          ['Really cool', 'Well, its not that impressive, its basic functionality', 'Blackboard sucks'],
-                         correct=1)
-        
+                         correct=1)        
 ```
 
 Note, you can embed html into the questions as well (such as for line
@@ -57,7 +57,7 @@ required blackboard zip format. This is quite easy to put together
 using Blackboard: taking a look at csv_reader.py:
 
 ```python
-#This code snippet is taken from csv_reader.py
+#This code snippet is taken from csv_parser.py
 import BlackboardQuiz
 import csv
 import sys
@@ -70,17 +70,24 @@ if len(sys.argv) < 3:
     print '  "Question", "Correct answer", "Incorrect answer 1","Incorrect answer 2",...'
     exit()
 
+import os
 with BlackboardQuiz.Package(sys.argv[1]) as package:
     for csv_file_name in sys.argv[2:]:
         if csv_file_name[-4:] != '.csv':
             raise Exception("File "+csv_file_name+" does not end in .csv!")
 
-        with open(csv_file_name,'rb') as csvfile, package.createPool(csv_file_name[:-4]) as pool:
+        pool_name = os.path.basename(csv_file_name)[:-4]
+        with open(csv_file_name,'rb') as csvfile, package.createPool(pool_name) as pool:
             reader = csv.reader(csvfile, delimiter=',', quotechar='"', skipinitialspace=True)
             for row in reader:
                 if len(row) == 0:
                     continue
-            
+                if row[0] == "":
+                    raise Exception("Blank question!")
+
+                #Get rid of any blank answers
+                row = filter(None, row)
+                
                 #Shuffle the answers
                 answer_idxs = list(range(1, len(row)))
                 shuffle(answer_idxs)
@@ -107,9 +114,10 @@ question sets or "pools" (or anything really). This file format lets
 you also embed images and this is how the LaTeX support is
 implemented. All strings are searched for `$` which are used to
 indicate a LaTeX string. Each of these are rendered into a png using
-the Matplotlib library. The resulting png images are then directly
-embedded into the zip file and the formulas are replaced by html img
-tags which link to these images.
+the tex2im script included (matplotlib couldn't calculate correct
+bounding boxes). The resulting png images are then directly embedded
+into the zip file and the formulas are replaced by html img tags which
+link to these images.
 
 The main trick was to reverse engineer how blackboard attaches unique
 identifiers to files. This was figured out by "reverse engineering"
@@ -119,4 +127,5 @@ current implementation in that it stores the images in a ugly-named
 subdirectory of the course. I think this can be fixed by adding
 additional xml tags but I'm not sure its worth the effort.
 
-The basic question structure was reverse engineered from the question generator here: http://www.csi.edu/blackboard/bbquiz/
+The basic question structure was reverse engineered from the question
+generator here: http://www.csi.edu/blackboard/bbquiz/
