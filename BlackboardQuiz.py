@@ -16,7 +16,7 @@ def render_latex(formula):
     """Renders LaTeX expression to bitmap image data.
     """
 
-    subprocess.check_call([os.path.join(dn, 'tex2im'), '-r', '240x240', '{'+formula+'}'])
+    subprocess.check_call([os.path.join(dn, 'tex2im'), '-r', '100x100', '{'+formula+'}'])
 
     with open('out.png', 'rb') as f:
         data = f.read()
@@ -277,10 +277,12 @@ class Package:
         
         if display:
             formula = (r'\displaystyle ')+formula
-            attrib = {'style':'display:block;margin-left:auto;margin-right:auto;height:'+str(height_em)+'em;width:'+str(width_em)+'em;'}
+            attrib = {'style':'display:block;margin-left:auto;margin-right:auto;'}
         else:
-            attrib = {'style':'display:inline-block; height:'+str(height_em)+'em;width:'+str(width_em)+'em;'}
+            attrib = {'style':'vertical-align:top;'}
 
+        attrib['width'] = str(width_px)
+        attrib['height'] = str(height_px)
         attrib['alt'] = escape(formula)
         
         return self.embed_image(name, img_data, attrib=attrib)
