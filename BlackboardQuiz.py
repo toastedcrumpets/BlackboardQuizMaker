@@ -5,17 +5,19 @@ import lxml.html as html
 import time
 import zipfile
 import re
-
+import os
 import matplotlib.pyplot as plt
 from cStringIO import StringIO
+from xml.sax.saxutils import escape, unescape
 
 class Pool:
-    def __init__(self, pool_name, package, description_text="Created by BlackboardQuiz!"):
+    def __init__(self, pool_name, package, description_text="Created by BlackboardQuiz!", preview = False):
         """Initialises a quiz
         """
         self.package = package
         self.pool_name = pool_name
-
+        self.preview = preview
+        
         #Create the question datafile
         self.pool = etree.Element("POOL")
         etree.SubElement(self.pool, 'COURSEID', {'value':self.package.courseID})
@@ -37,7 +39,8 @@ class Pool:
         self.close()
 
     def close(self):
-        self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile)
+        if self.preview:
+            self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile)
         self.package.embed_resource(self.pool_name, "assessment/x-bb-pool", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.pool, pretty_print=True))
 
     def addQuestion(self, text, answers, correct, positive_feedback="Good work", negative_feedback="That's not correct"):
@@ -98,7 +101,7 @@ class Package:
         self.next_xid = 1000000
         self.equation_counter = 0
         self.resource_counter = 1
-
+        self.embedded_paths = {}
         #Create the manifest file
         self.manifest = etree.Element("manifest", {'identifier':'man00001'})
         organisation = etree.SubElement(self.manifest, "organization", {'default':'toc00001'})
@@ -110,9 +113,16 @@ class Package:
             #Use latex (not mathtex) for better but slower results
             from matplotlib import rc
             rc('text', usetex=True)            
-
+            
     def close(self):
+        #Write additional data to implement the course name
+        #parentContext = etree.Element("parentContextInfo")
+        #etree.SubElement(parentContext, "parentContextId").text = self.courseID
+        #self.embed_resource("ParentContext", "resource/x-mhhe-course-cx", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(parentContext, pretty_print=True))
+
+        #Finally, write the manifest file
         self.zf.writestr('imsmanifest.xml', '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.manifest, pretty_print=True))
+
         self.zf.close()
 
     def __enter__(self):
@@ -124,47 +134,56 @@ class Package:
     def createPool(self, pool_name, description_text="Created by BlackboardQuiz!"):
         return Pool(pool_name, self, description_text)
 
-
     def embed_resource(self, name, type, content):
         resource = etree.SubElement(self.resources, 'resource', {'baseurl':name, 'file':name+'.dat', 'identifier':name, 'type':type})
         self.zf.writestr(name+'.dat', content)
 
-    def embed_file_data(self, name, content = None):
+    def embed_file_data(self, name, content):
         """Embeds a file (given a name and content) to the quiz and returns the
         unique id of the file, and the path to the file in the zip
         """                
+
+        #First, we need to process the path of the file, and embed xid
+        #descriptors for each directory/subdirectory
+        
+        #Split the name into filename and path
+        path, filename = os.path.split(name)
+
+        #Simplify the path (remove any ./ items and simplify ../ items to come at the start)
+        if (path != ""):
+            path = os.path.relpath(path)
+        else:
+            path = ''
+        
+        #Split the path up into its components
+        def rec_split(s):
+            rest, tail = os.path.split(s)
+            if rest in ('', os.path.sep):
+                return [tail]
+            return rec_split(s) + [tail]
+
+        path = rec_split(path)
+        root, ext = os.path.splitext(filename)
+
+        #current_embedded_paths = self.embedded_paths
+        #for i in len()
+
+        #Finally, assign a xid to the file itself
         self.next_xid += 1
-        name = name.split('.')
-        path = 'csfiles/home_dir/'+self.courseID+'/'+name[0]+'__xid-'+str(self.next_xid)+'_1.'+name[1]
-        self.zf.writestr(path, content)
+        filename = root + '__xid-'+str(self.next_xid)+'_1' + ext
+
+        #Merge the path pieces and filename
+        path = path + [filename]
+        path = os.path.join(*path)
+        filepath = os.path.join('csfiles/home_dir/', path)
+        self.zf.writestr(filepath, content)
+
+        #descriptor_node = etree.Element("lom") #attrib = {'xmlns':, 'xmlns:xsi':'http://www.w3.org/2001/XMLSchema-instance', 'xsi:schemaLocation':'http://www.imsglobal.org/xsd/imsmd_rootv1p2p1 imsmd_rootv1p2p1.xsd'}
+        #relation = etree.SubElement(descriptor_node, 'relation')
+        #resource = etree.SubElement(relation, 'resource')
+        #etree.SubElement(resource, 'identifier').text = str(self.next_xid) + '#' + '/courses/'+self.courseID+'/'+path
+        #self.zf.writestr(filepath+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=True))
         return str(self.next_xid)+'_1', path
-
-    def render_latex(self, formula, fontsize=12, dpi=150, format_='png'):
-        """Renders LaTeX expression to bitmap image data.
-        """
-        fig = plt.figure()
-        text = fig.text(0, 0, u'${}$'.format(formula), fontsize=fontsize)
-        #Fake render to force matplotlib to determine the actual size of the text
-        buffer_ = StringIO()
-        fig.savefig(buffer_, dpi=dpi, format=format_, transparent=True)
-
-        #Determine the actual size of the text
-        bbox = text.get_window_extent()
-        width, height = bbox.size / float(dpi) + 0.005
-        # Adjust the figure size so it can hold the entire text.
-        fig.set_size_inches((width, height))
-
-        # Adjust text's vertical position.
-        dy = (bbox.ymin/float(dpi))/height
-        text.set_position((0, -dy))
-
-        #Now render the text again but with correct clipping
-        buffer_ = StringIO()
-        fig.savefig(buffer_, dpi=dpi, format=format_, transparent=True)
-        plt.close(fig)
-
-        #This gives a 22px em height
-        return buffer_.getvalue()
 
     def embed_file(self, filename, file_data=None, attrib={}):
         """Embeds a file, and returns an img tag for use in blackboard, and an equivalent for html.
@@ -190,20 +209,63 @@ class Package:
         output_bb = '<img src="@X@EmbeddedFile.requestUrlStub@X@bbcswebdav/xid-'+xid+'"'
         output_html = '<img src="'+path+'"'
         for key, value in attrib.items():
-            output_bb += " "+key+'="'+value+'"'
-            output_html += " "+key+'="'+value+'"'
+            output_bb += ' '+key+'="'+value+'"'
+            output_html += ' '+key+'="'+value+'"'
         output_bb += '>'
         output_html += '>'
         return output_bb, output_html
         
-    def embed_latex(self, formula, attrib={}):
+    def render_latex(self, formula, fontsize=12, dpi=150, format_='png'):
+        """Renders LaTeX expression to bitmap image data.
+        """
+        fig = plt.figure()
+        text = fig.text(0, 0, u'${}$'.format(formula), fontsize=fontsize)
+        #Fake render to force matplotlib to determine the actual size of the text
+        buffer_ = StringIO()
+        fig.savefig(buffer_, dpi=dpi, format=format_, transparent=True)
+
+        #Determine the actual size of the text
+        bbox = text.get_window_extent()
+        width, height = bbox.size / float(dpi) + 0.005
+        # Adjust the figure size so it can hold the entire text.
+        fig.set_size_inches((width, height))
+
+        # Adjust text's vertical position.
+        dy = (bbox.ymin/float(dpi))/height
+        text.set_position((0, -dy))
+
+        #Now render the text again but with correct clipping
+        buffer_ = StringIO()
+        fig.savefig(buffer_, dpi=dpi, format=format_, transparent=True)
+        plt.close(fig)
+
+        #This gives a 22px=1em height
+        return buffer_.getvalue(), bbox.size[1]
+
+    def embed_latex(self, formula, display=False):
         """Renders a LaTeX formula to an image, embeds the image in the quiz
         and returns a img tag which can be used in the text of a
         question or answer.
         """
         name = "eq"+str(self.equation_counter)+".png"
         self.equation_counter += 1
-        return self.embed_image(name, self.render_latex(formula), attrib=attrib)
+
+
+        img_data, height_px = self.render_latex(formula)
+
+        #This gives a 22px=1em height
+        height_em = height_px / 22.0
+        
+        if display:
+            if self.useLaTeX:
+                formula = (r'\displaystyle ')+formula
+            attrib = {'style':'display:block;margin-left:auto;margin-right:auto;height:'+str(height_em)+'em;'}
+        else:
+            attrib = {'style':'vertical-align:middle; height:'+str(height_em)+'em;'}
+
+        attrib['alt'] = escape(formula)
+        
+        return self.embed_image(name, img_data, attrib=attrib)
 
     def process_string(self, in_string):
         """Scan a string for LaTeX equations, image tags, etc, and process them.
@@ -222,14 +284,11 @@ class Package:
 
         html_string = pattern.sub(lambda match : img_src_processor(match.group(0), True), in_string)
         in_string = pattern.sub(lambda match : img_src_processor(match.group(0), False), in_string)
-        
-        #Process display LaTeX equations
+                    
         in_string = in_string.split('$$')
         html_string = html_string.split('$$')
         for i in range(1, len(in_string), 2):
-            if self.useLaTeX:
-                in_string[i] = (r'\displaystyle ')+in_string[i]
-            bb_img, html_img = self.embed_latex(in_string[i], attrib={'style':'display:block;margin-left:auto;margin-right:auto;'})
+            bb_img, html_img = self.embed_latex(in_string[i], True)
             in_string[i] = bb_img
             html_string[i] = html_img
         in_string = ''.join(in_string)
@@ -239,7 +298,7 @@ class Package:
         in_string = in_string.split('$')
         html_string = html_string.split('$')
         for i in range(1, len(in_string), 2):
-            bb_img, html_img = self.embed_latex(in_string[i], attrib={'style':'vertical-align:bottom; height:1.1em;'})
+            bb_img, html_img = self.embed_latex(in_string[i], False)
             in_string[i] = bb_img
             html_string[i] = html_img
 
