@@ -11,7 +11,7 @@ from cStringIO import StringIO
 from xml.sax.saxutils import escape, unescape
 
 class Pool:
-    def __init__(self, pool_name, package, description_text="Created by BlackboardQuiz!", preview = False):
+    def __init__(self, pool_name, package, description_text="Created by BlackboardQuiz!", preview = True):
         """Initialises a quiz
         """
         self.package = package
@@ -41,7 +41,7 @@ class Pool:
     def close(self):
         if self.preview:
             self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile)
-        self.package.embed_resource(self.pool_name, "assessment/x-bb-pool", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.pool, pretty_print=True))
+        self.package.embed_resource("assessment/x-bb-pool", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.pool, pretty_print=True))
 
     def addQuestion(self, text, answers, correct, positive_feedback="Good work", negative_feedback="That's not correct"):
         self.question_counter += 1 
@@ -100,25 +100,26 @@ class Package:
         self.zf = zipfile.ZipFile(self.courseID+'.zip', mode='w', compression=compression)
         self.next_xid = 1000000
         self.equation_counter = 0
-        self.resource_counter = 1
+        self.resource_counter = 0
         self.embedded_paths = {}
         #Create the manifest file
-        self.manifest = etree.Element("manifest", {'identifier':'man00001'})
+        self.bbNS = 'http://www.blackboard.com/content-packaging/'
+        self.manifest = etree.Element("manifest", {'identifier':'man00001'}, nsmap={'bb':self.bbNS})
         organisation = etree.SubElement(self.manifest, "organization", {'default':'toc00001'})
         etree.SubElement(organisation, 'tableofcontents', {'identifier':'toc00001'})
         self.resources = etree.SubElement(self.manifest, 'resources')
 
         self.useLaTeX = useLaTeX
+        from matplotlib import rc
         if self.useLaTeX:
             #Use latex (not mathtex) for better but slower results
-            from matplotlib import rc
-            rc('text', usetex=True)            
+            rc('text', usetex=True)
             
     def close(self):
         #Write additional data to implement the course name
-        #parentContext = etree.Element("parentContextInfo")
-        #etree.SubElement(parentContext, "parentContextId").text = self.courseID
-        #self.embed_resource("ParentContext", "resource/x-mhhe-course-cx", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(parentContext, pretty_print=True))
+        parentContext = etree.Element("parentContextInfo")
+        etree.SubElement(parentContext, "parentContextId").text = self.courseID
+        self.embed_resource("resource/x-mhhe-course-cx", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(parentContext, pretty_print=True))
 
         #Finally, write the manifest file
         self.zf.writestr('imsmanifest.xml', '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.manifest, pretty_print=True))
@@ -134,8 +135,13 @@ class Package:
     def createPool(self, pool_name, description_text="Created by BlackboardQuiz!"):
         return Pool(pool_name, self, description_text)
 
-    def embed_resource(self, name, type, content):
-        resource = etree.SubElement(self.resources, 'resource', {'baseurl':name, 'file':name+'.dat', 'identifier':name, 'type':type})
+    def embed_resource(self, type, content):
+        self.resource_counter += 1
+        name = 'res'+format(self.resource_counter, '05')
+        resource = etree.SubElement(self.resources, 'resource', {'identifier':name, 'type':type})
+        resource.attrib[etree.QName(self.bbNS, 'base')] = name
+        resource.attrib[etree.QName(self.bbNS, 'file')] = name+'.dat'
+        
         self.zf.writestr(name+'.dat', content)
 
     def embed_file_data(self, name, content):
@@ -152,8 +158,6 @@ class Package:
         #Simplify the path (remove any ./ items and simplify ../ items to come at the start)
         if (path != ""):
             path = os.path.relpath(path)
-        else:
-            path = ''
         
         #Split the path up into its components
         def rec_split(s):
@@ -165,9 +169,40 @@ class Package:
         path = rec_split(path)
         root, ext = os.path.splitext(filename)
 
-        #current_embedded_paths = self.embedded_paths
-        #for i in len()
+        def processDirectories(path, embedded_paths, i=0):
+            #Keep processing until the whole path is processed
+            if i >= len(path):
+                return path
 
+            #Slice any useless entries from the path
+            if i==0 and (path[0] == ".." or path[0] == '/' or path[0] == ''):
+                path = path[1:]
+                return processDirectories(path, embedded_paths, i)
+
+            #Check if the path is already processed
+            if path[i] in embedded_paths:
+                new_e_paths = embedded_paths[path[i]][1]
+                path[i] = embedded_paths[path[i]][0]
+            else:
+                #Path not processed, add it
+                descriptor_node = etree.Element("lom") #attrib = {'xmlns':, 'xmlns:xsi':'http://www.w3.org/2001/XMLSchema-instance', 'xsi:schemaLocation':'http://www.imsglobal.org/xsd/imsmd_rootv1p2p1 imsmd_rootv1p2p1.xsd'}
+                relation = etree.SubElement(descriptor_node, 'relation')
+                resource = etree.SubElement(relation, 'resource')
+
+                self.next_xid += 1
+                transformed_path = path[i]+'__xid-'+str(self.next_xid)+'_1'
+                etree.SubElement(resource, 'identifier').text = str(self.next_xid)+'_1' + '#' + '/courses/'+self.courseID+'/' + os.path.join(*(path[:i+1]))
+                embedded_paths[path[i]] = [transformed_path, {}]
+                new_e_paths = embedded_paths[path[i]][1]
+
+                path[i] = transformed_path
+                
+                self.zf.writestr(os.path.join('csfiles/home_dir', *(path[:i+1]))+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=True))
+
+            return processDirectories(path, new_e_paths, i+1)
+
+        processDirectories(path, self.embedded_paths)
+        
         #Finally, assign a xid to the file itself
         self.next_xid += 1
         filename = root + '__xid-'+str(self.next_xid)+'_1' + ext
@@ -177,13 +212,13 @@ class Package:
         path = os.path.join(*path)
         filepath = os.path.join('csfiles/home_dir/', path)
         self.zf.writestr(filepath, content)
-
-        #descriptor_node = etree.Element("lom") #attrib = {'xmlns':, 'xmlns:xsi':'http://www.w3.org/2001/XMLSchema-instance', 'xsi:schemaLocation':'http://www.imsglobal.org/xsd/imsmd_rootv1p2p1 imsmd_rootv1p2p1.xsd'}
-        #relation = etree.SubElement(descriptor_node, 'relation')
-        #resource = etree.SubElement(relation, 'resource')
-        #etree.SubElement(resource, 'identifier').text = str(self.next_xid) + '#' + '/courses/'+self.courseID+'/'+path
-        #self.zf.writestr(filepath+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=True))
-        return str(self.next_xid)+'_1', path
+        
+        descriptor_node = etree.Element("lom") #attrib = {'xmlns':, 'xmlns:xsi':'http://www.w3.org/2001/XMLSchema-instance', 'xsi:schemaLocation':'http://www.imsglobal.org/xsd/imsmd_rootv1p2p1 imsmd_rootv1p2p1.xsd'}
+        relation = etree.SubElement(descriptor_node, 'relation')
+        resource = etree.SubElement(relation, 'resource')
+        etree.SubElement(resource, 'identifier').text = str(self.next_xid) + '#' + '/courses/'+self.courseID+'/'+path
+        self.zf.writestr(filepath+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=True))
+        return str(self.next_xid)+'_1', filepath
 
     def embed_file(self, filename, file_data=None, attrib={}):
         """Embeds a file, and returns an img tag for use in blackboard, and an equivalent for html.
@@ -239,29 +274,29 @@ class Package:
         fig.savefig(buffer_, dpi=dpi, format=format_, transparent=True)
         plt.close(fig)
 
-        #This gives a 22px=1em height
-        return buffer_.getvalue(), bbox.size[1]
+        return buffer_.getvalue(), bbox.size[0], bbox.size[1]
 
     def embed_latex(self, formula, display=False):
         """Renders a LaTeX formula to an image, embeds the image in the quiz
         and returns a img tag which can be used in the text of a
         question or answer.
         """
-        name = "eq"+str(self.equation_counter)+".png"
+        name = "LaTeX/eq"+str(self.equation_counter)+".png"
         self.equation_counter += 1
 
 
-        img_data, height_px = self.render_latex(formula)
+        img_data, width_px, height_px = self.render_latex(formula)
 
         #This gives a 22px=1em height
+        width_em = width_px / 22.0
         height_em = height_px / 22.0
         
         if display:
             if self.useLaTeX:
                 formula = (r'\displaystyle ')+formula
-            attrib = {'style':'display:block;margin-left:auto;margin-right:auto;height:'+str(height_em)+'em;'}
+            attrib = {'style':'display:block;margin-left:auto;margin-right:auto;height:'+str(height_em)+'em;width:'+str(width_em)+'em;'}
         else:
-            attrib = {'style':'vertical-align:middle; height:'+str(height_em)+'em;'}
+            attrib = {'style':'vertical-align:middle; height:'+str(height_em)+'em;width:'+str(width_em)+'em;'}
 
         attrib['alt'] = escape(formula)
         
