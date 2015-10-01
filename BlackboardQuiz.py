@@ -47,7 +47,7 @@ class Pool:
 
         #Create the manifest file
 
-        self.htmlfile = "<html><head><style>li.correct, li.incorrect{list-style-type:none;} li.correct:before{content:'\\2713\\0020'}\nli.incorrect:before{content:'\\2718\\0020'}</style></head><body><p>Questions<ul>"
+        self.htmlfile = "<html><head><style>li.correct, li.incorrect{list-style-type:none;} li.correct:before{content:'\\2713\\0020'}\nli.incorrect:before{content:'\\2718\\0020'}</style></head><body><p>Questions<ol>"
 
     def __enter__(self):
         return self
@@ -57,7 +57,7 @@ class Pool:
 
     def close(self):
         if self.preview:
-            self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile)
+            self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile+'</ol></body></html>')
         self.package.embed_resource("assessment/x-bb-pool", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.pool, pretty_print=True))
 
     def addQuestion(self, text, answers, correct, positive_feedback="Good work", negative_feedback="That's not correct"):

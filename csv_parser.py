@@ -35,5 +35,7 @@ with BlackboardQuiz.Package(sys.argv[1]) as package:
                 #Shuffle the answers
                 answer_idxs = list(range(1, len(row)))
                 shuffle(answer_idxs)
+                shuffle(answer_idxs)
+                shuffle(answer_idxs)
                 answers = map(lambda x : row[x], answer_idxs)
                 pool.addQuestion(row[0], answers, correct=answer_idxs.index(1)+1)
