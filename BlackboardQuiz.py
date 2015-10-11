@@ -279,7 +279,7 @@ class Package:
             formula = (r'\displaystyle ')+formula
             attrib = {'style':'display:block;margin-left:auto;margin-right:auto;'}
         else:
-            attrib = {'style':'vertical-align:top;'}
+            attrib = {'style':'vertical-align:middle;'}
 
         attrib['width'] = str(width_px)
         attrib['height'] = str(height_px)
