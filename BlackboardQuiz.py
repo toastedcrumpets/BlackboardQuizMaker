@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from lxml import etree
 import lxml.html as html
@@ -7,7 +7,7 @@ import zipfile
 import re
 import os
 from xml.sax.saxutils import escape, unescape
-import Image
+from PIL import Image
 from StringIO import StringIO
 
 import subprocess

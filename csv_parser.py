@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #An example way of parsing your own csv file format
 
@@ -8,10 +8,10 @@ import sys
 from random import shuffle
 
 if len(sys.argv) < 3:
-    print "Usage: csv_parser.py course_ID pool_1.csv [pool_2.csv ...]"
-    print " output is in course_ID.zip"
-    print "  Each line of pool_X.csv should have the following structure"
-    print '  "Question", "Correct answer", "Incorrect answer 1","Incorrect answer 2",...'
+    print("Usage: csv_parser.py course_ID pool_1.csv [pool_2.csv ...]")
+    print(" output is in course_ID.zip")
+    print("  Each line of pool_X.csv should have the following structure")
+    print('  "Question", "Correct answer", "Incorrect answer 1","Incorrect answer 2",...')
     exit()
 
 import os
