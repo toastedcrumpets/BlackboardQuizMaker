@@ -5,6 +5,7 @@ import BlackboardQuiz
 with BlackboardQuiz.Package("MyBlackboardPackage") as package:
     with package.createPool('TestPoolName', description="<p>Description</p>", instructions="<p>Instructions</p>") as pool:
         pool.addNumQ('QTitle', 'QText', 42, erramt=0.1, positive_feedback="<p>Correct feedback</p>", negative_feedback="<p>Incorrect feedback</p>")
+        pool.addMCQ('Multi-choice title', '<p>QText</p>', answers=["<p>A1</p>", "<p>A2</p>", "<p>A3</p>", "<p>A4</p>"],  positive_feedback="<p>QCorrectFeedback</p>", negative_feedback="<p>QIncorrectFeedback</p>")
         #Note that correct answer here is from 1 to 3 (not zero indexed)
 
 #        #You can also set the feedback using positive_feedback and
