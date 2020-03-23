@@ -6,6 +6,7 @@ import time
 import zipfile
 import re
 import os
+import uuid
 from xml.sax.saxutils import escape, unescape
 from PIL import Image
 from StringIO import StringIO
@@ -28,25 +29,29 @@ def render_latex(formula):
     return data, width, height
 
 class Pool:
-    def __init__(self, pool_name, package, description_text="Created by BlackboardQuiz!", preview = True):
-        """Initialises a quiz
+    def __init__(self, pool_name, package, description="Created by BlackboardQuiz!", instructions="", preview=True):
+        """Initialises a question pool
         """
         self.package = package
         self.pool_name = pool_name
         self.preview = preview
-        
-        #Create the question datafile
-        self.pool = etree.Element("POOL")
-        etree.SubElement(self.pool, 'COURSEID', {'value':self.package.courseID})
-        etree.SubElement(self.pool, 'TITLE', {'value':self.pool_name})
-        description = etree.SubElement(self.pool, 'DESCRIPTION')
-        etree.SubElement(description, 'TEXT').text = description_text
-        self.package.addDates(self.pool)
-        self.questionlist = etree.SubElement(self.pool, 'QUESTIONLIST')
         self.question_counter = 0
+        
+        #Create the question data file
+        self.questestinterop = etree.Element("questestinterop")
+        assessment = etree.SubElement(self.questestinterop, 'assessment', {'title':self.pool_name})
 
-        #Create the manifest file
+        rubric = etree.SubElement(assessment, 'rubric', {'view':'All'})
+        flow_mat = etree.SubElement(rubric, 'flow_mat', {'class':'Block'})
+        self.material(flow_mat, instructions)
 
+        presentation_material = etree.SubElement(assessment, 'presentation_material')
+        flow_mat = etree.SubElement(presentation_material, 'flow_mat', {'class':'Block'})
+        self.material(flow_mat, description)
+
+        self.section = etree.SubElement(assessment, 'section')
+        
+        #Create the HTML file for preview
         self.htmlfile = "<html><head><style>li.correct, li.incorrect{list-style-type:none;} li.correct:before{content:'\\2713\\0020'}\nli.incorrect:before{content:'\\2718\\0020'}</style></head><body><p>Questions<ol>"
 
     def __enter__(self):
@@ -58,39 +63,146 @@ class Pool:
     def close(self):
         if self.preview:
             self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile+'</ol></body></html>')
-        self.package.embed_resource("assessment/x-bb-pool", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.pool, pretty_print=True))
-
-    def addQuestion(self, text, answers, correct, positive_feedback="Good work", negative_feedback="That's not correct"):
+        self.package.embed_resource("assessment/x-bb-qti-pool", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False))
+        
+    def addNumQ(self, title, text, answer, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
+        if not errfrac and not erramt and ((not errlow) or (not errhigh)):
+            raise Exception("Numerical questions require an error amount, fraction, or bounds")
+        if errfrac != None:
+            errlow = answer * (1-errfrac)
+            errhigh = answer * (1+errfrac)
+        if erramt != None:
+            errlow = answer - abs(erramt)
+            errhigh = answer + abs(erramt)
+        
         self.question_counter += 1 
         question_id = 'q'+str(self.question_counter)
         #Add the question to the list of questions
-        etree.SubElement(self.questionlist, 'QUESTION', {'id':question_id, 'class':'QUESTION_MULTIPLECHOICE'})
-        #Add the actual question node
-        q_node = etree.SubElement(self.pool, 'QUESTION_MULTIPLECHOICE', {'id':question_id})
-        self.package.addDates(q_node)
-        body = etree.SubElement(q_node, 'BODY')
+        item = etree.SubElement(self.section, 'item', {'title':title, 'maxattempts':'0'})
+        presentation = etree.SubElement(item, 'presentation')
+        flow1 = etree.SubElement(presentation, 'flow', {'class':'Block'})
+        flow2 = etree.SubElement(flow1, 'flow', {'class':'QUESTION_BLOCK'})
+        flow3 = etree.SubElement(flow2, 'flow', {'class':'FORMATTED_TEXT_BLOCK'})
+
         bb_question_text, html_question_text = self.package.process_string(text)
         self.htmlfile += '<li>'+html_question_text+'<ul>'
-        etree.SubElement(body, 'TEXT').text = bb_question_text
-        flags = etree.SubElement(body, 'FLAGS', {'value':'true'})
-        etree.SubElement(flags, 'ISHTML', {'value':'true'})
-        etree.SubElement(flags, 'ISNEWLINELITERAL')
+        self.material(flow3, bb_question_text)
+
+        flow2 = etree.SubElement(flow1, 'flow', {'class':'RESPONSE_BLOCK'})
+        response_num = etree.SubElement(flow2, 'response_num', {'ident':'response', 'rcardinality':'Single', 'rtiming':'No'})
+        etree.SubElement(response_num, 'render_fib', {'charset':'us-ascii', 'encoding':'UTF_8', 'rows':'0', 'columns':'0', 'maxchars':'0', 'prompt':'Box', 'fibtype':'Decimal', 'minnumber':'0', 'maxnumber':'0'})
+
         
-        a_count = 0
-        for text in answers:
-            a_count += 1
-            a_id = question_id+'_a'+str(a_count)
-            answer = etree.SubElement(q_node, 'ANSWER', {'id':a_id, 'position':str(a_count)})
-            self.package.addDates(answer)
+        resprocessing = etree.SubElement(item, 'resprocessing', {'scoremodel':'SumOfScores'})
+        outcomes = etree.SubElement(resprocessing, 'outcomes', {})
+        decvar = etree.SubElement(outcomes, 'decvar', {'varname':'SCORE', 'vartype':'Decimal', 'defaultval':'0', 'minvalue':'0'})
+        respcondition = etree.SubElement(resprocessing, 'respcondition', {'title':uuid.uuid4().hex})
+        conditionvar = etree.SubElement(respcondition, 'conditionvar')
+        etree.SubElement(conditionvar, 'vargte', {'respident':'response'}).text = repr(errlow)
+        etree.SubElement(conditionvar, 'varlte', {'respident':'response'}).text = repr(errhigh)
+        etree.SubElement(conditionvar, 'varequal', {'respident':'response', 'case':'No'}).text = repr(answer)
+        etree.SubElement(respcondition, 'displayfeedback', {'linkrefid':'correct', 'feedbacktype':'Response'})
+        respcondition = etree.SubElement(resprocessing, 'respcondition', {'title':'incorrect'})
+        conditionvar = etree.SubElement(respcondition, 'conditionvar')
+        etree.SubElement(conditionvar, 'other')
+        etree.SubElement(respcondition, 'setvar', {'variablename':'SCORE', 'action':'Set'}).text = '0'
+        etree.SubElement(respcondition, 'displayfeedback', {'linkrefid':'incorrect', 'feedbacktype':'Response'})
+        itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'correct', 'view':'All'})
+        bb_pos_feedback_text, html_pos_feedback_text = self.package.process_string(positive_feedback)
+        self.flow_mat2(itemfeedback, bb_pos_feedback_text)
+        
+        itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'incorrect', 'view':'All'})
+        bb_neg_feedback_text, html_neg_feedback_text = self.package.process_string(negative_feedback)
+        self.flow_mat2(itemfeedback, bb_neg_feedback_text)
+        
+        self.htmlfile += '</ul>'
+        self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
+        self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
+        self.htmlfile += '</li>'
+
+        
+    def addMCQ(self, title, text, answers, correct, positive_feedback="Good work", negative_feedback="That's not correct"):
+        if not errfrac and not erramt and ((not errlow) or (not errhigh)):
+            raise Exception("Numerical questions require an error amount, fraction, or bounds")
+        if errfrac != None:
+            errlow = answer * (1-errfrac)
+            errhigh = answer * (1+errfrac)
+        if erramt != None:
+            errlow = answer + abs(erramt)
+            errhigh = answer - abs(erramt)
+        
+        self.question_counter += 1 
+        question_id = 'q'+str(self.question_counter)
+        #Add the question to the list of questions
+        item = etree.SubElement(self.section, 'item', {'title':title, 'maxattempts':'0'})
+        presentation = etree.SubElement(item, 'presentation')
+        flow1 = etree.SubElement(presentation, 'flow', {'class':'Block'})
+        flow2 = etree.SubElement(flow1, 'flow', {'class':'QUESTION_BLOCK'})
+        flow3 = etree.SubElement(flow2, 'flow', {'class':'FORMATTED_TEXT_BLOCK'})
+
+        bb_question_text, html_question_text = self.package.process_string(text)
+        self.htmlfile += '<li>'+html_question_text+'<ul>'
+        self.material(flow3, bb_question_text)
+
+        flow2 = etree.SubElement(flow1, 'flow', {'class':'RESPONSE_BLOCK'})
+        response_lid = etree.SubElement(flow2, 'response_lid', {'ident':'response', 'rcardinality':'Single', 'rtiming':'No'})
+        render_choice = etree.SubElement(response_lid, 'render_choice', {'shuffle':'No', 'minnumber':'0', 'maxnumber':'0'})
+
+        a_uuids = []
+        for idx,text in enumerate(answers):
+            flow_label = etree.SubElement(render_choice, 'flow_label', {'class':'Block'})
+            a_uuids.append(uuid.uuid4().hex)
+            response_label = etree.SubElement(flow_label, 'response_label', {'ident':a_uuids[-1], 'shuffle':'Yes', 'rarea':'Ellipse', 'rrange':'Exact'})
             bb_answer_text, html_answer_text = self.package.process_string(text)
-            etree.SubElement(answer, 'TEXT').text = bb_answer_text
-
+            self.flow_mat1(response_label, bb_answer_text)
             classname="incorrect"
-            if (a_count == correct):
+            if (idx+1 == correct):
                 classname="correct"
-
             self.htmlfile += '<li class="'+classname+'">'+html_answer_text+'</li>'
+            
+        resprocessing = etree.SubElement(item, 'resprocessing', {'scoremodel':'SumOfScores'})
+        outcomes = etree.SubElement(resprocessing, 'outcomes', {})
+        decvar = etree.SubElement(outcomes, 'decvar', {'varname':'SCORE', 'vartype':'Decimal', 'defaultval':'0', 'minvalue':'0'})
+        
+        respcondition = etree.SubElement(resprocessing, 'respcondition', {'title':'correct'})
+        conditionvar = etree.SubElement(respcondition, 'conditionvar')
+        etree.SubElement(conditionvar, 'varequal', {'respident':'response', 'case':'no'}).text = a_uuids[correct]
+        etree.SubElement(respcondition, 'setvar', {'variablename':'SCORE', 'action':'Set'}).text = 'SCORE.max'
+        etree.SubElement(respcondition, 'displayfeedback', {'linkrefid':'correct', 'feedbacktype':'Response'})
+        respcondition = etree.SubElement(resprocessing, 'respcondition', {'title':'incorrect'})
+        conditionvar = etree.SubElement(respcondition, 'conditionvar')
+        etree.SubElement(conditionvar, 'other')
+        etree.SubElement(respcondition, 'setvar', {'variablename':'SCORE', 'action':'Set'}).text = '0'
+        etree.SubElement(respcondition, 'displayfeedback', {'linkrefid':'incorrect', 'feedbacktype':'Response'})
+        for idx, uuid in enumerate(a_uuids):
+            respcondition = etree.SubElement(resprocessing, 'respcondition')
+            conditionvar = etree.SubElement(respcondition, 'conditionvar')
+            etree.SubElement(conditionvar, 'varequal', {'respident':uuid, 'case':'no'}).text = repr(answer)
+            if idx == correct:
+                etree.SubElement(respcondition, 'setvar', {'variablename':'SCORE', 'action':'Set'}).text = '100'
+            else:
+                etree.SubElement(respcondition, 'setvar', {'variablename':'SCORE', 'action':'Set'}).text = '0'
+            etree.SubElement(respcondition, 'displayfeedback', {'linkrefid':uuid, 'feedbacktype':'Response'})
+        
+        itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'correct', 'view':'All'})
+        flow1 = etree.SubElement(itemfeedback, 'flow', {'class':'Block'})
+        flow2 = etree.SubElement(flow1, 'flow', {'class':'FORMATTED_TEXT_BLOCK'})
+        bb_pos_feedback_text, html_pos_feedback_text = self.package.process_string(positive_feedback)
+        self.material(flow2, bb_pos_feedback_text)
+        
+        itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'incorrect', 'view':'All'})
+        flow1 = etree.SubElement(itemfeedback, 'flow', {'class':'Block'})
+        flow2 = etree.SubElement(flow1, 'flow', {'class':'FORMATTED_TEXT_BLOCK'})
+        bb_neg_feedback_text, html_neg_feedback_text = self.package.process_string(negative_feedback)
+        self.material(flow2, bb_neg_feedback_text)
 
+        for idx, uuid in enumerate(a_uuids):
+            itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':uuid, 'view':'All'})
+            solution = etree.SubElement(itemfeedback, 'solution', {'view':'All', 'feedbackstyle':'Complete'})
+            solutionmaterial = etree.SubElement(solution, 'solutionmaterial')
+            self.flow_mat1(solutionmaterial, '')
+
+        
         gradable = etree.SubElement(q_node, 'GRADABLE')
         bb_pos_feedback_text, html_pos_feedback_text = self.package.process_string(positive_feedback)
         bb_neg_feedback_text, html_neg_feedback_text = self.package.process_string(negative_feedback)
@@ -103,6 +215,20 @@ class Pool:
         self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
         self.htmlfile += '</li>'
 
+    def flow_mat2(self, node, text):
+        flow = etree.SubElement(node, 'flow_mat', {'class':'Block'})
+        self.flow_mat1(flow, text)
+
+    def flow_mat1(self, node, text):
+        flow = etree.SubElement(node, 'flow_mat', {'class':'FORMATTED_TEXT_BLOCK'})
+        self.material(flow, text)
+        
+    def material(self, node, text):
+        material = etree.SubElement(node, 'material')
+        mat_extension = etree.SubElement(material, 'mat_extension')
+        mat_formattedtext = etree.SubElement(mat_extension, 'mat_formattedtext', {'type':'HTML'})
+        mat_formattedtext.text = text
+        
 class Package:
     def __init__(self, courseID="IMPORT"):
         """Initialises a Blackboard package
@@ -122,18 +248,18 @@ class Package:
         #Create the manifest file
         self.bbNS = 'http://www.blackboard.com/content-packaging/'
         self.manifest = etree.Element("manifest", {'identifier':'man00001'}, nsmap={'bb':self.bbNS})
-        organisation = etree.SubElement(self.manifest, "organization", {'default':'toc00001'})
-        etree.SubElement(organisation, 'tableofcontents', {'identifier':'toc00001'})
+        organisations = etree.SubElement(self.manifest, "organizations")
         self.resources = etree.SubElement(self.manifest, 'resources')
-            
+
+        
     def close(self):
         #Write additional data to implement the course name
         parentContext = etree.Element("parentContextInfo")
         etree.SubElement(parentContext, "parentContextId").text = self.courseID
-        self.embed_resource("resource/x-mhhe-course-cx", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(parentContext, pretty_print=True))
+        self.embed_resource("resource/x-mhhe-course-cx", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(parentContext, pretty_print=False))
 
         #Finally, write the manifest file
-        self.zf.writestr('imsmanifest.xml', '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.manifest, pretty_print=True))
+        self.zf.writestr('imsmanifest.xml', '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.manifest, pretty_print=False))
 
         self.zf.close()
 
@@ -143,8 +269,8 @@ class Package:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
-    def createPool(self, pool_name, description_text="Created by BlackboardQuiz!"):
-        return Pool(pool_name, self, description_text)
+    def createPool(self, pool_name, *args, **kwargs):
+        return Pool(pool_name, self, *args, **kwargs)
 
     def embed_resource(self, type, content):
         self.resource_counter += 1
@@ -208,7 +334,7 @@ class Package:
 
                 path[i] = transformed_path
                 
-                self.zf.writestr(os.path.join('csfiles/home_dir', *(path[:i+1]))+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=True))
+                self.zf.writestr(os.path.join('csfiles/home_dir', *(path[:i+1]))+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=False))
 
             return processDirectories(path, new_e_paths, i+1)
 
@@ -228,7 +354,7 @@ class Package:
         relation = etree.SubElement(descriptor_node, 'relation')
         resource = etree.SubElement(relation, 'resource')
         etree.SubElement(resource, 'identifier').text = str(self.next_xid) + '#' + '/courses/'+self.courseID+'/'+path
-        self.zf.writestr(filepath+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=True))
+        self.zf.writestr(filepath+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=False))
         return str(self.next_xid)+'_1', filepath
 
     def embed_file(self, filename, file_data=None, attrib={}):
@@ -323,10 +449,3 @@ class Package:
             html_string[i] = html_img
 
         return ''.join(in_string), ''.join(html_string)
-
-    def addDates(self, element):
-        """Helper function to add the DATES section
-        """
-        dates = etree.SubElement(element, 'DATES')
-        etree.SubElement(dates, 'CREATED', {'value':time.strftime('%Y-%m-%d %H:%M:%SZ')})
-        etree.SubElement(dates, 'UPDATED', {'value':time.strftime('%Y-%m-%d %H:%M:%SZ')})
