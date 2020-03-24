@@ -180,10 +180,9 @@ class Pool:
         bb_neg_feedback_text, html_neg_feedback_text = self.package.process_string(negative_feedback)
         self.flow_mat2(itemfeedback, bb_neg_feedback_text)
         
-        self.htmlfile += '</ul>'
-        self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
-        self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
-        self.htmlfile += '</li>'
+        self.htmlfile += '<li class="correct"><b>'+repr(errlow)+' &le; Answer &le; '+repr(errhigh)+'</b>:'+html_pos_feedback_text+'</li>'
+        self.htmlfile += '<li class="incorrect"><b>Else</b>:'+html_neg_feedback_text+'</li>'
+        self.htmlfile += '</ul></li>'
 
         
     def addMCQ(self, title, text, answers, correct=0, positive_feedback="Good work", negative_feedback="That's not correct"):
