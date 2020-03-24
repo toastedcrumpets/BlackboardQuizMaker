@@ -2,7 +2,12 @@
 
 import BlackboardQuiz
 
+#You need a package, which is what you'll eventually upload to
+#Blackboard/MyAberdeen
 with BlackboardQuiz.Package("EX3502_20") as package:
+
+    #You may have multiple question pools in a single package, just
+    #repeat this block with different pool names.
     with package.createPool('TestPool', description="<p>Description</p>", instructions="<p>Instructions</p>") as pool:
         #We can do numerical questions
         pool.addNumQ('Douglas Adams Question', 'What is the answer to life, the universe, and everything?', 42, erramt=0.1, positive_feedback="<p>Good, you have read well.</p>", negative_feedback="<p>Where have you been?</p>")
@@ -17,12 +22,10 @@ with BlackboardQuiz.Package("EX3502_20") as package:
                     positive_feedback="Well done!",
                     negative_feedback="Sorry, but the general rule for polynomial integration is $\\int x^n\\,dx=\\frac{x^{n+1}}{n+1}$ for $n\\neq -1$"
         )
-    
+        
         #Embedding external images is easy too and will automatically
         #be included into the package. Other HTML can also be used for
         #formatting, I don't check it.
         pool.addMCQ('HTML question', 'I cant believe that you can embed images! <img src="example_image.png"> Cool huh?',
                     ['Really cool.', 'Well, its not that impressive, its basic functionality.', 'Blackboard sucks.'],
                     correct=0)
-        
-
