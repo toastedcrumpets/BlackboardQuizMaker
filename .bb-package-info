@@ -1,0 +1,25 @@
+#Bb PackageInfo Property File
+#Tue Mar 24 00:01:23 GMT 2020
+cx.config.learn.site.id=20fc3687-607e-41e9-81b8-11a72be9fe5f
+db.product.version=9.6.15
+cx.config.full.value=CxConfig{operation\=EXPORT, courseid\=EX3502_20, package\=/usr/local/blackboard/apps/tomcat/temp/plugins/bb-assessment/b071a637-db66-4e7d-b4e4-1d5cde75ff6f/Pool_ExportFile_EX3502_20_TestPool.zip, logger\=CxLogger{logs\=[Log{name\=/usr/local/blackboard/apps/tomcat/temp/plugins/bb-assessment/b071a637-db66-4e7d-b4e4-1d5cde75ff6f/Pool_ExportFile_EX3502_20_TestPool.log, verbosity\=default}, Log{name\=STDOUT, verbosity\=default}], logHooks\=[]}, resource_type_inclusions\=[], area_inclusions\=[ALIGNMENTS, RUBRIC], area_exclusions\=[ALL], object_inclusions\={POOL\=[_1191882_1]}, object_exclusions\={}, features\={BypassDiskQuotaCheck\=false, ArchiveUserPasswords\=false, CreateOrg\=false, AlternateAssessmentCsLinks\=false, ImportCourseStructure\=false, Bb5LinkToBrokenImageFix\=true}, strHostName\=null, isCommandLineRequest\=false, isCourseConversion\=false, eventHandlers\=[], primaryNode\=null, nodes\=[], title\=null, packageVersion\=null, archiveCSItems\=true, archiveECSItems\=false, archiveOnlyReferencedPpg\=true, commonCartridge\=false, qti21Package\=false, createChildFolder\=false, csDir\=, excludedCsFolderIds\=null, homeDir\=, includeGradeHistoryInArchive\=false, isExportPackage\=false, logDetailRubricInfo\=false, taskId\=null, useDefaultLog\=true}
+cx.config.learn.installation.id=03e915a9e8534aed8065ae8bb44a0527
+java.version=11.0.4
+os.arch=amd64
+cx.config.package.name=/usr/local/blackboard/apps/tomcat/temp/plugins/bb-assessment/b071a637-db66-4e7d-b4e4-1d5cde75ff6f/Pool_ExportFile_EX3502_20_TestPool.zip
+java.class.path=/usr/local/blackboard/apps/service-wrapper/lib/wrapper.jar\:/usr/lib/jvm/java-11-amazon-corretto/lib/tools.jar\:/usr/local/blackboard/apps/tomcat/lib/bb-tomcat-bootstrap.jar\:/usr/local/blackboard/apps/tomcat/bin/bootstrap.jar\:/usr/local/blackboard/apps/tomcat/bin/tomcat-juli.jar
+app.release.number=3800.4.0-rel.40+d78544e
+cx.package.info.version=6.0
+java.home=/usr/lib/jvm/java-11-amazon-corretto
+os.version=4.4.0-1073-aws
+java.default.locale=en
+db.product.name=PostgreSQL
+cx.config.operation=blackboard.apps.cx.CxConfig$Operation\:EXPORT
+cx.config.logs=[Log{name\=/usr/local/blackboard/apps/tomcat/temp/plugins/bb-assessment/b071a637-db66-4e7d-b4e4-1d5cde75ff6f/Pool_ExportFile_EX3502_20_TestPool.log, verbosity\=default}, Log{name\=STDOUT, verbosity\=default}]
+cx.config.course.id=EX3502_20
+java.vendor=Amazon.com Inc.
+cx.config.file.references=false
+cx.config.package.identifier=237f3445fd1c4d80b9f5a04daca35cef
+db.driver.name=PostgreSQL JDBC Driver
+os.name=Linux
+db.driver.version=42.2.5

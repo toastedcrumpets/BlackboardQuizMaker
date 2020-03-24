@@ -25,7 +25,6 @@ def render_latex(formula):
     im = Image.open(StringIO(data))
     width, height = im.size
     del im
-    
     return data, width, height
 
 class Pool:
@@ -41,6 +40,28 @@ class Pool:
         self.questestinterop = etree.Element("questestinterop")
         assessment = etree.SubElement(self.questestinterop, 'assessment', {'title':self.pool_name})
 
+        md = etree.SubElement(assessment, 'assessmentmetadata')
+        for key, val in [
+                ('bbmd_asi_object_id', '_'+str(self.package.bbid())+'_1'),
+                ('bbmd_asitype', 'Assessment'),
+                ('bbmd_assessmenttype', 'Pool'),
+                ('bbmd_sectiontype', 'Subsection'),
+                ('bbmd_questiontype', 'Multiple Choice'),
+                ('bbmd_is_from_cartridge', 'false'),
+                ('bbmd_is_disabled', 'false'),
+                ('bbmd_negative_points_ind', 'N'),
+                ('bbmd_canvas_fullcrdt_ind', 'false'),
+                ('bbmd_all_fullcredit_ind', 'false'),
+                ('bbmd_numbertype', 'none'),
+                ('bbmd_partialcredit', ''),
+                ('bbmd_orientationtype', 'vertical'),
+                ('bbmd_is_extracredit', 'false'),
+                ('qmd_absolutescore_max', '0'),
+                ('qmd_weighting', '0'),
+                ('qmd_instructornotes', ''),
+        ]:
+            etree.SubElement(md, key).text = val
+        
         rubric = etree.SubElement(assessment, 'rubric', {'view':'All'})
         flow_mat = etree.SubElement(rubric, 'flow_mat', {'class':'Block'})
         self.material(flow_mat, instructions)
@@ -50,6 +71,27 @@ class Pool:
         self.material(flow_mat, description)
 
         self.section = etree.SubElement(assessment, 'section')
+        md = etree.SubElement(self.section, 'sectionmetadata')
+        for key, val in [
+                ('bbmd_asi_object_id', '_'+str(self.package.bbid())+'_1'),
+                ('bbmd_asitype', 'Section'),
+                ('bbmd_assessmenttype', 'Pool'),
+                ('bbmd_sectiontype', 'Subsection'),
+                ('bbmd_questiontype', 'Multiple Choice'),
+                ('bbmd_is_from_cartridge', 'false'),
+                ('bbmd_is_disabled', 'false'),
+                ('bbmd_negative_points_ind', 'N'),
+                ('bbmd_canvas_fullcrdt_ind', 'false'),
+                ('bbmd_all_fullcredit_ind', 'false'),
+                ('bbmd_numbertype', 'none'),
+                ('bbmd_partialcredit', ''),
+                ('bbmd_orientationtype', 'vertical'),
+                ('bbmd_is_extracredit', 'false'),
+                ('qmd_absolutescore_max', '0'),
+                ('qmd_weighting', '0'),
+                ('qmd_instructornotes', ''),
+        ]:
+            etree.SubElement(md, key).text = val
         
         #Create the HTML file for preview
         self.htmlfile = "<html><head><style>li.correct, li.incorrect{list-style-type:none;} li.correct:before{content:'\\2713\\0020'}\nli.incorrect:before{content:'\\2718\\0020'}</style></head><body><p>Questions<ol>"
@@ -63,7 +105,7 @@ class Pool:
     def close(self):
         if self.preview:
             self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile+'</ol></body></html>')
-        self.package.embed_resource("assessment/x-bb-qti-pool", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False))
+        self.package.embed_resource(self.pool_name, "assessment/x-bb-qti-pool", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False))
         
     def addNumQ(self, title, text, answer, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
         if not errfrac and not erramt and ((not errlow) or (not errhigh)):
@@ -75,10 +117,33 @@ class Pool:
             errlow = answer - abs(erramt)
             errhigh = answer + abs(erramt)
         
-        self.question_counter += 1 
+        self.question_counter += 1
         question_id = 'q'+str(self.question_counter)
         #Add the question to the list of questions
         item = etree.SubElement(self.section, 'item', {'title':title, 'maxattempts':'0'})
+
+        md = etree.SubElement(item, 'itemmetadata')
+        for key, val in [
+                ('bbmd_asi_object_id', '_'+str(self.package.bbid())+'_1'),
+                ('bbmd_asitype', 'Item'),
+                ('bbmd_assessmenttype', 'Pool'),
+                ('bbmd_sectiontype', 'Subsection'),
+                ('bbmd_questiontype', 'Numeric'),
+                ('bbmd_is_from_cartridge', 'false'),
+                ('bbmd_is_disabled', 'false'),
+                ('bbmd_negative_points_ind', 'N'),
+                ('bbmd_canvas_fullcrdt_ind', 'false'),
+                ('bbmd_all_fullcredit_ind', 'false'),
+                ('bbmd_numbertype', 'none'),
+                ('bbmd_partialcredit', 'false'),
+                ('bbmd_orientationtype', 'vertical'),
+                ('bbmd_is_extracredit', 'false'),
+                ('qmd_absolutescore_max', '-1.0'),
+                ('qmd_weighting', '0'),
+                ('qmd_instructornotes', ''),
+        ]:
+            etree.SubElement(md, key).text = val
+        
         presentation = etree.SubElement(item, 'presentation')
         flow1 = etree.SubElement(presentation, 'flow', {'class':'Block'})
         flow2 = etree.SubElement(flow1, 'flow', {'class':'QUESTION_BLOCK'})
@@ -127,6 +192,28 @@ class Pool:
         question_id = 'q'+str(self.question_counter)
         #Add the question to the list of questions
         item = etree.SubElement(self.section, 'item', {'title':title, 'maxattempts':'0'})
+        md = etree.SubElement(item, 'itemmetadata')
+        for key, val in [
+                ('bbmd_asi_object_id', '_'+str(self.package.bbid())+'_1'),
+                ('bbmd_asitype', 'Item'),
+                ('bbmd_assessmenttype', 'Pool'),
+                ('bbmd_sectiontype', 'Subsection'),
+                ('bbmd_questiontype', 'Multiple Choice'),
+                ('bbmd_is_from_cartridge', 'false'),
+                ('bbmd_is_disabled', 'false'),
+                ('bbmd_negative_points_ind', 'N'),
+                ('bbmd_canvas_fullcrdt_ind', 'false'),
+                ('bbmd_all_fullcredit_ind', 'false'),
+                ('bbmd_numbertype', 'none'),
+                ('bbmd_partialcredit', 'false'),
+                ('bbmd_orientationtype', 'vertical'),
+                ('bbmd_is_extracredit', 'false'),
+                ('qmd_absolutescore_max', '10.000000000000000'),
+                ('qmd_weighting', '0'),
+                ('qmd_instructornotes', ''),
+        ]:
+            etree.SubElement(md, key).text = val
+        
         presentation = etree.SubElement(item, 'presentation')
         flow1 = etree.SubElement(presentation, 'flow', {'class':'Block'})
         flow2 = etree.SubElement(flow1, 'flow', {'class':'QUESTION_BLOCK'})
@@ -226,21 +313,27 @@ class Package:
         self.resource_counter = 0
         self.embedded_paths = {}
         #Create the manifest file
+        self.xmlNS = "http://www.w3.org/XML/1998/namespace"
         self.bbNS = 'http://www.blackboard.com/content-packaging/'
         self.manifest = etree.Element("manifest", {'identifier':'man00001'}, nsmap={'bb':self.bbNS})
         organisations = etree.SubElement(self.manifest, "organizations")
         self.resources = etree.SubElement(self.manifest, 'resources')
 
-        
+        self.idcntr = 3191882
+
+    def bbid(self):
+        self.idcntr += 1
+        return self.idcntr
+    
     def close(self):
         #Write additional data to implement the course name
         parentContext = etree.Element("parentContextInfo")
         etree.SubElement(parentContext, "parentContextId").text = self.courseID
-        self.embed_resource("resource/x-mhhe-course-cx", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(parentContext, pretty_print=False))
+        self.embed_resource(self.courseID, "resource/x-mhhe-course-cx", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(parentContext, pretty_print=False))
 
         #Finally, write the manifest file
         self.zf.writestr('imsmanifest.xml', '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.manifest, pretty_print=False))
-
+        self.zf.writestr('.bb-package-info', open(os.path.join(os.path.dirname(__file__), '.bb-package-info')).read())
         self.zf.close()
 
     def __enter__(self):
@@ -252,12 +345,13 @@ class Package:
     def createPool(self, pool_name, *args, **kwargs):
         return Pool(pool_name, self, *args, **kwargs)
 
-    def embed_resource(self, type, content):
+    def embed_resource(self, title, type, content):
         self.resource_counter += 1
         name = 'res'+format(self.resource_counter, '05')
         resource = etree.SubElement(self.resources, 'resource', {'identifier':name, 'type':type})
-        resource.attrib[etree.QName(self.bbNS, 'base')] = name
+        resource.attrib[etree.QName(self.xmlNS, 'base')] = name
         resource.attrib[etree.QName(self.bbNS, 'file')] = name+'.dat'
+        resource.attrib[etree.QName(self.bbNS, 'title')] = title
         
         self.zf.writestr(name+'.dat', content)
 
