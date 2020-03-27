@@ -17,8 +17,25 @@ def render_latex(formula):
     """Renders LaTeX expression to bitmap image data.
     """
 
-    subprocess.check_call([os.path.join(dn, 'tex2im'), '-r', '100x100', '{'+formula+'}'])
+    #if os.name == "nt":
+        #import matplotlib.pyplot as plt
+        #from matplotlib import rcParams
+        #rcParams['text.usetex'] = True
+        #fig, ax = plt.subplots()
+        #fig.patch.set_visible(False)
+        #ax.text(0.5,0.5, '{$'+formula+'$}', fontsize=10)
+        #ax.axis('off')
+        #fig.tight_layout()
+        #fig.savefig("out.png")
+        #
+        #import sympy
+        #sympy.preview('$'+formula+'$', viewer='file', filename="out.png")
+    #else:
+        #subprocess.check_call([os.path.join(dn, 'tex2im'), '-r', '100x100', '{'+formula+'}'])
 
+    import sympy
+    sympy.preview('$'+formula+'$', viewer='file', filename="out.png")
+    
     with open('out.png', 'rb') as f:
         data = f.read()
         

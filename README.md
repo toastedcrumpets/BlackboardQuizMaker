@@ -12,11 +12,11 @@ generate permutations of questions programmatically.
 # Dependencies
 
 This package requires a working installation of python, python-lxml,
-and python-image, imagemagick, and LaTeX. You can install these on
+and python-image, imagemagick, sympy, and LaTeX. You can install these on
 ubuntu like so:
 
 ```
-sudo apt-get install python-lxml python-image imagemagick 
+sudo apt-get install python-lxml python-image imagemagick  python-sympy
 ```
 
 # How to use it (python)
