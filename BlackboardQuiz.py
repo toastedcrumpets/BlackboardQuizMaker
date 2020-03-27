@@ -18,6 +18,7 @@ def render_latex(formula, *args, **kwargs):
     """
 
     import sympy
+    print('$'+formula+'$')
     sympy.preview('$'+formula+'$', viewer='file', filename="out.png", euler=False, *args, **kwargs)
     
     with open('out.png', 'rb') as f:
@@ -321,6 +322,8 @@ class Package:
 
         self.idcntr = 3191882
         self.latex_kwargs = dict()
+
+        self.latex_cache = {}
         
     def bbid(self):
         self.idcntr += 1
@@ -467,6 +470,9 @@ class Package:
         and returns a img tag which can be used in the text of a
         question or answer.
         """
+        if formula in self.latex_cache:
+            return self.latex_cache[formula]
+        
         name = "LaTeX/eq"+str(self.equation_counter)+".png"
         self.equation_counter += 1
 
@@ -485,8 +491,8 @@ class Package:
         attrib['width'] = str(width_px)
         attrib['height'] = str(height_px)
         attrib['alt'] = escape(formula)
-        
-        return self.embed_image(name, img_data, attrib=attrib)
+        self.latex_cache[formula] = self.embed_image(name, img_data, attrib=attrib)
+        return self.latex_cache[formula]
 
     def process_string(self, in_string):
         """Scan a string for LaTeX equations, image tags, etc, and process them.
