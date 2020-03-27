@@ -18,7 +18,6 @@ def render_latex(formula, *args, **kwargs):
     """
 
     import sympy
-    print('$'+formula+'$')
     sympy.preview('$'+formula+'$', viewer='file', filename="out.png", euler=False, *args, **kwargs)
     
     with open('out.png', 'rb') as f:
@@ -283,6 +282,18 @@ class Pool:
         self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
         self.htmlfile += '</li>'
 
+    def addCalcQ(self, title, text, xs, answer, count, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
+        #This fancy loop goes over all permutations of the variables in xs
+        import itertools
+        for i in range(count):
+            x = {x: xs[x][0].rvs(1)[0] for x in xs}
+            t = text
+            for var, val in x.iteritems():
+                val = float('{:.{p}g}'.format(val, p=xs[var][1])) #round to given S.F.
+                t = t.replace('['+var+']', repr(val))
+                result = answer(**x)
+            self.addNumQ(title=title, text=t, answer=result, errfrac=errfrac, erramt=erramt, errlow=errlow, errhigh=errhigh, positive_feedback=positive_feedback, negative_feedback=negative_feedback)
+        
     def flow_mat2(self, node, text):
         flow = etree.SubElement(node, 'flow_mat', {'class':'Block'})
         self.flow_mat1(flow, text)
