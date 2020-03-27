@@ -13,28 +13,12 @@ from StringIO import StringIO
 
 import subprocess
 dn = os.path.dirname(os.path.realpath(__file__))
-def render_latex(formula):
+def render_latex(formula, *args, **kwargs):
     """Renders LaTeX expression to bitmap image data.
     """
 
-    #if os.name == "nt":
-        #import matplotlib.pyplot as plt
-        #from matplotlib import rcParams
-        #rcParams['text.usetex'] = True
-        #fig, ax = plt.subplots()
-        #fig.patch.set_visible(False)
-        #ax.text(0.5,0.5, '{$'+formula+'$}', fontsize=10)
-        #ax.axis('off')
-        #fig.tight_layout()
-        #fig.savefig("out.png")
-        #
-        #import sympy
-        #sympy.preview('$'+formula+'$', viewer='file', filename="out.png")
-    #else:
-        #subprocess.check_call([os.path.join(dn, 'tex2im'), '-r', '100x100', '{'+formula+'}'])
-
     import sympy
-    sympy.preview('$'+formula+'$', viewer='file', filename="out.png")
+    sympy.preview('$'+formula+'$', viewer='file', filename="out.png", euler=False, *args, **kwargs)
     
     with open('out.png', 'rb') as f:
         data = f.read()
@@ -336,7 +320,8 @@ class Package:
         self.resources = etree.SubElement(self.manifest, 'resources')
 
         self.idcntr = 3191882
-
+        self.latex_kwargs = dict()
+        
     def bbid(self):
         self.idcntr += 1
         return self.idcntr
@@ -485,7 +470,7 @@ class Package:
         name = "LaTeX/eq"+str(self.equation_counter)+".png"
         self.equation_counter += 1
 
-        img_data, width_px, height_px = render_latex(formula)
+        img_data, width_px, height_px = render_latex(formula, **self.latex_kwargs)
 
         #This gives a 44px=1em height
         width_em = width_px / 44.0

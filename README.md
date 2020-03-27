@@ -19,6 +19,8 @@ ubuntu like so:
 sudo apt-get install python-lxml python-image imagemagick  python-sympy
 ```
 
+It should also work on windows!
+
 # How to use it (python)
 Create an instance of the Package class using the "with" pattern, add one or more Pools, then add questions to each pool!
 ```python
