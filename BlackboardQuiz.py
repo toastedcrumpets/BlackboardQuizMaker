@@ -199,7 +199,7 @@ class Pool:
         self.htmlfile += '</ul></li>'
 
         
-    def addMCQ(self, title, text, answers, correct=0, positive_feedback="Good work", negative_feedback="That's not correct"):
+    def addMCQ(self, title, text, answers, correct=0, positive_feedback="Good work", negative_feedback="That's not correct", shuffle_ans=True):
         
         self.question_counter += 1 
         question_id = 'q'+str(self.question_counter)
@@ -238,7 +238,7 @@ class Pool:
 
         flow2 = etree.SubElement(flow1, 'flow', {'class':'RESPONSE_BLOCK'})
         response_lid = etree.SubElement(flow2, 'response_lid', {'ident':'response', 'rcardinality':'Single', 'rtiming':'No'})
-        render_choice = etree.SubElement(response_lid, 'render_choice', {'shuffle':'No', 'minnumber':'0', 'maxnumber':'0'})
+        render_choice = etree.SubElement(response_lid, 'render_choice', {'shuffle':'Yes' if shuffle_ans else 'No', 'minnumber':'0', 'maxnumber':'0'})
 
         a_uuids = []
         for idx,text in enumerate(answers):
