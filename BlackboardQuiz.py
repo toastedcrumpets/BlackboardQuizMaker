@@ -295,10 +295,11 @@ class Pool:
         self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
         self.htmlfile += '</li>'
 
-    def addCalcQ(self, title, text, xs, answer, count, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
+    def addCalcQ(self, title, text, xs, count, calc, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
         #This fancy loop goes over all permutations of the variables in xs
         for i in range(count):
             x = {}
+            # Calculate all random variables
             for xk in xs:
                 if hasattr(xs[xk][0], 'rvs'):
                     x[xk] = float('{:.{p}g}'.format(xs[xk][0].rvs(1)[0], p=xs[xk][1])) #round to given S.F.
@@ -306,11 +307,15 @@ class Pool:
                     x[xk] = random.choice(xs[xk][0]) #Random choice from list
                 else:
                     raise RuntimeError("Unrecognised distribution/list for the question")
+
+            # Run the calculation
+            x = calc(x)
+            
             t = text
-            for var, val in x.iteritems():
+            for var, val in x.items():
                 t = t.replace('['+var+']', str(val))
-                result = answer(**x)
-            self.addNumQ(title=title, text=t, answer=result, errfrac=errfrac, erramt=erramt, errlow=errlow, errhigh=errhigh, positive_feedback=positive_feedback, negative_feedback=negative_feedback)
+            
+            self.addNumQ(title=title, text=t, answer=x['answer'], errfrac=errfrac, erramt=erramt, errlow=errlow, errhigh=errhigh, positive_feedback=positive_feedback, negative_feedback=negative_feedback)
         
     def flow_mat2(self, node, text):
         flow = etree.SubElement(node, 'flow_mat', {'class':'Block'})
