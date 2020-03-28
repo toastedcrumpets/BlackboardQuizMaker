@@ -29,10 +29,8 @@ def render_latex(formula, display, *args, **kwargs):
         \begin{document}"""
 
     if display:
-        print("Doing display!")
         sympy.preview(r'\begin{align*}'+formula+r'\end{align*}', viewer='file', filename="out.png", euler=False, *args, **kwargs)
     else:
-        print("Not doing it")
         sympy.preview('$'+formula+'$', viewer='file', filename="out.png", euler=False, *args, **kwargs)
         
     with open('out.png', 'rb') as f:
