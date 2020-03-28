@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from lxml import etree
 import lxml.html as html
@@ -9,21 +9,36 @@ import os
 import uuid
 from xml.sax.saxutils import escape, unescape
 from PIL import Image
-from StringIO import StringIO
+from io import StringIO
+from io import BytesIO
+import itertools
+import scipy.stats
+import sympy
+import random
 
 import subprocess
 dn = os.path.dirname(os.path.realpath(__file__))
-def render_latex(formula, *args, **kwargs):
+def render_latex(formula, display, *args, **kwargs):
     """Renders LaTeX expression to bitmap image data.
     """
 
-    import sympy
-    sympy.preview('$'+formula+'$', viewer='file', filename="out.png", euler=False, *args, **kwargs)
-    
+    # Set a default math environment to have amsmath
+    if 'preamble' not in kwargs:
+        kwargs['preamble'] = r"""\documentclass[varwidth]{standalone}
+        \usepackage{amsmath,amsfonts}
+        \begin{document}"""
+
+    if display:
+        print("Doing display!")
+        sympy.preview(r'\begin{align*}'+formula+r'\end{align*}', viewer='file', filename="out.png", euler=False, *args, **kwargs)
+    else:
+        print("Not doing it")
+        sympy.preview('$'+formula+'$', viewer='file', filename="out.png", euler=False, *args, **kwargs)
+        
     with open('out.png', 'rb') as f:
         data = f.read()
         
-    im = Image.open(StringIO(data))
+    im = Image.open(BytesIO(data))
     width, height = im.size
     del im
     return data, width, height
@@ -106,7 +121,7 @@ class Pool:
     def close(self):
         if self.preview:
             self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile+'</ol></body></html>')
-        self.package.embed_resource(self.pool_name, "assessment/x-bb-qti-pool", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False))
+        self.package.embed_resource(self.pool_name, "assessment/x-bb-qti-pool", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
         
     def addNumQ(self, title, text, answer, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
         if not errfrac and not erramt and ((not errlow) or (not errhigh)):
@@ -284,13 +299,18 @@ class Pool:
 
     def addCalcQ(self, title, text, xs, answer, count, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
         #This fancy loop goes over all permutations of the variables in xs
-        import itertools
         for i in range(count):
-            x = {x: xs[x][0].rvs(1)[0] for x in xs}
+            x = {}
+            for xk in xs:
+                if hasattr(xs[xk][0], 'rvs'):
+                    x[xk] = float('{:.{p}g}'.format(xs[xk][0].rvs(1)[0], p=xs[xk][1])) #round to given S.F.
+                elif isinstance(xs[xk][0], list):
+                    x[xk] = random.choice(xs[xk][0]) #Random choice from list
+                else:
+                    raise RuntimeError("Unrecognised distribution/list for the question")
             t = text
             for var, val in x.iteritems():
-                val = float('{:.{p}g}'.format(val, p=xs[var][1])) #round to given S.F.
-                t = t.replace('['+var+']', repr(val))
+                t = t.replace('['+var+']', str(val))
                 result = answer(**x)
             self.addNumQ(title=title, text=t, answer=result, errfrac=errfrac, erramt=erramt, errlow=errlow, errhigh=errhigh, positive_feedback=positive_feedback, negative_feedback=negative_feedback)
         
@@ -344,10 +364,10 @@ class Package:
         #Write additional data to implement the course name
         parentContext = etree.Element("parentContextInfo")
         etree.SubElement(parentContext, "parentContextId").text = self.courseID
-        self.embed_resource(self.courseID, "resource/x-mhhe-course-cx", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(parentContext, pretty_print=False))
+        self.embed_resource(self.courseID, "resource/x-mhhe-course-cx", '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(parentContext, pretty_print=False).decode('utf-8'))
 
         #Finally, write the manifest file
-        self.zf.writestr('imsmanifest.xml', '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.manifest, pretty_print=False))
+        self.zf.writestr('imsmanifest.xml', '<?xml version="1.0" encoding="utf-8"?>\n'+etree.tostring(self.manifest, pretty_print=False).decode('utf-8'))
         self.zf.writestr('.bb-package-info', open(os.path.join(os.path.dirname(__file__), '.bb-package-info')).read())
         self.zf.close()
 
@@ -423,7 +443,7 @@ class Package:
 
                 path[i] = transformed_path
                 
-                self.zf.writestr(os.path.join('csfiles/home_dir', *(path[:i+1]))+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=False))
+                self.zf.writestr(os.path.join('csfiles/home_dir', *(path[:i+1]))+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=False).decode('utf-8'))
 
             return processDirectories(path, new_e_paths, i+1)
 
@@ -443,7 +463,7 @@ class Package:
         relation = etree.SubElement(descriptor_node, 'relation')
         resource = etree.SubElement(relation, 'resource')
         etree.SubElement(resource, 'identifier').text = str(self.next_xid) + '#' + '/courses/'+self.courseID+'/'+path
-        self.zf.writestr(filepath+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=False))
+        self.zf.writestr(filepath+'.xml', '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(descriptor_node, pretty_print=False).decode('utf-8'))
         return str(self.next_xid)+'_1', filepath
 
     def embed_file(self, filename, file_data=None, attrib={}):
@@ -487,14 +507,13 @@ class Package:
         name = "LaTeX/eq"+str(self.equation_counter)+".png"
         self.equation_counter += 1
 
-        img_data, width_px, height_px = render_latex(formula, **self.latex_kwargs)
+        img_data, width_px, height_px = render_latex(formula, display=display, **self.latex_kwargs)
 
         #This gives a 44px=1em height
         width_em = width_px / 44.0
         height_em = height_px / 44.0
         
         if display:
-            formula = (r'\displaystyle ')+formula
             attrib = {'style':'display:block;margin-left:auto;margin-right:auto;'}
         else:
             attrib = {'style':'vertical-align:middle;'}
@@ -518,7 +537,7 @@ class Package:
                 img_tag.attrib['src'] = path
             else:
                 img_tag.attrib['src'] = '@X@EmbeddedFile.requestUrlStub@X@bbcswebdav/xid-'+xid
-            return html.tostring(img_tag)
+            return html.tostring(img_tag).decode('utf-8')
 
         html_string = pattern.sub(lambda match : img_src_processor(match.group(0), True), in_string)
         in_string = pattern.sub(lambda match : img_src_processor(match.group(0), False), in_string)
