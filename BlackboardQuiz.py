@@ -19,6 +19,33 @@ import random
 def roundSF(val, sf):
     return float('{:.{p}g}'.format(val, p=sf))
 
+def regexSF(val, sf):
+    #This is not really functional. It will match floats but not with rounding restrictions!
+    #Match the start of the string and any initial whitespace
+    regex="^[ ]*" 
+
+    #Match the sign of the variable
+    if val < 0:
+        regex = regex +'-' #negative is required
+    else:
+        regex = regex +'\+?' #plus is optional
+
+    #Round the figure to the required S.F.
+    val = str(roundSF(abs(val), sf))
+    
+    didx=val.find('.')
+    if didx == -1:
+        didx = len(val)
+    
+    if val[0]=='0':
+        regex += re.search('(0\.[0]*[0-9]{0,'+str(sf)+'})', val).group(0) + "[0-9]*[ ]*"
+    elif didx>=sf:
+        regex += val[:sf]+"[0-9]{"+str(didx-sf)+'}(.|($|[ ]+))'
+    else:
+        regex += val[:sf+1].replace('.', r'\.')
+    return regex
+    
+
 import subprocess
 dn = os.path.dirname(os.path.realpath(__file__))
 def render_latex(formula, display, *args, **kwargs):
@@ -299,7 +326,7 @@ class Pool:
         self.htmlfile += '</li>'
 
     def addFITBQ(self, title, text, answers, positive_feedback="Good work", negative_feedback="That's not correct"):
-        #Add the question to the list of questions
+        """Fill in the blank questions"""
         item = etree.SubElement(self.section, 'item', {'title':title, 'maxattempts':'0'})
         md = etree.SubElement(item, 'itemmetadata')
         for key, val in [
@@ -368,10 +395,9 @@ class Pool:
         self.htmlfile += '</ul>'
         self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
         self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
-        self.htmlfile += '</li>'
+        self.htmlfile += '</li>'        
 
-        
-    def addCalcQ(self, title, text, xs, count, calc, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
+    def addCalcNumQ(self, title, text, xs, count, calc, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
         #This fancy loop goes over all permutations of the variables in xs
         for i in range(count):
             x = {}
@@ -401,7 +427,8 @@ class Pool:
                     neg = neg.replace('['+var+']', str(val))
             
             self.addNumQ(title=title, text=t, answer=x['answer'], errfrac=errfrac, erramt=erramt, errlow=errlow, errhigh=errhigh, positive_feedback=pos, negative_feedback=neg)
-        
+
+            
     def flow_mat2(self, node, text):
         flow = etree.SubElement(node, 'flow_mat', {'class':'Block'})
         self.flow_mat1(flow, text)

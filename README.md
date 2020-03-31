@@ -85,6 +85,10 @@ convenience, like below:
 
 ![](img/preview.png?raw=true)
 
+There's much more advanced usage, including fill in the blanks (to
+give multi-part questions) and computed functions just see the
+[python_example.py](python_example.py) file.
+
 # How the program works
 
 Blackboard has an XML file format which it uses to upload/download

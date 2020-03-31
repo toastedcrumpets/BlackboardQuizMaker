@@ -2,7 +2,6 @@
 
 import BlackboardQuiz
 
-
 #You need a package, which is what you'll eventually upload to
 #Blackboard/MyAberdeen
 with BlackboardQuiz.Package("MyQuestionPools") as package:
@@ -61,7 +60,7 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
             x['roughanswer'] = BlackboardQuiz.roundSF(x['answer'], 1)
             return x
         
-        pool.addCalcQ(
+        pool.addCalcNumQ(
             title='Linear function solving',
             # Notice the placeholders for variables, i.e. [y]
             text=r'Determine $x$ for $[y]=[m]x +[c]$ (Hint the answer is roughly [roughanswer])', 
@@ -83,4 +82,4 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
                           'C':[r'''w[o0]{2}d'''], # Allow leet speak (i.e. w00d or wo0d or w0od)
                           'D':['chuck', 'Chuck', 'CHUCK'], #Multiple matching patterns if needed
                       })
-                      
+
