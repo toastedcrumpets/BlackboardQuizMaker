@@ -16,6 +16,9 @@ import scipy.stats
 import sympy
 import random
 
+def roundSF(val, sf):
+    return float('{:.{p}g}'.format(val, p=sf))
+
 import subprocess
 dn = os.path.dirname(os.path.realpath(__file__))
 def render_latex(formula, display, *args, **kwargs):
@@ -295,6 +298,79 @@ class Pool:
         self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
         self.htmlfile += '</li>'
 
+    def addFITBQ(self, title, text, answers, positive_feedback="Good work", negative_feedback="That's not correct"):
+        #Add the question to the list of questions
+        item = etree.SubElement(self.section, 'item', {'title':title, 'maxattempts':'0'})
+        md = etree.SubElement(item, 'itemmetadata')
+        for key, val in [
+                ('bbmd_asi_object_id', '_'+str(self.package.bbid())+'_1'),
+                ('bbmd_asitype', 'Item'),
+                ('bbmd_assessmenttype', 'Pool'),
+                ('bbmd_sectiontype', 'Subsection'),
+                ('bbmd_questiontype', 'Fill in the Blank Plus'),
+                ('bbmd_is_from_cartridge', 'false'),
+                ('bbmd_is_disabled', 'false'),
+                ('bbmd_negative_points_ind', 'N'),
+                ('bbmd_canvas_fullcrdt_ind', 'false'),
+                ('bbmd_all_fullcredit_ind', 'false'),
+                ('bbmd_numbertype', 'none'),
+                ('bbmd_partialcredit', 'true'),
+                ('bbmd_orientationtype', 'vertical'),
+                ('bbmd_is_extracredit', 'false'),
+                ('qmd_absolutescore_max', '-1.0'),
+                ('qmd_weighting', '0'),
+                ('qmd_instructornotes', ''),
+        ]:
+            etree.SubElement(md, key).text = val
+        
+        presentation = etree.SubElement(item, 'presentation')
+        flow1 = etree.SubElement(presentation, 'flow', {'class':'Block'})
+        flow2 = etree.SubElement(flow1, 'flow', {'class':'QUESTION_BLOCK'})
+        flow3 = etree.SubElement(flow2, 'flow', {'class':'FORMATTED_TEXT_BLOCK'})
+        bb_question_text, html_question_text = self.package.process_string(text)
+        self.htmlfile += '<li>'+html_question_text+'<ul>'
+        self.material(flow3, bb_question_text)
+
+        flow2 = etree.SubElement(flow1, 'flow', {'class':'RESPONSE_BLOCK'})
+        for ans_key in answers:
+            response_str = etree.SubElement(flow2, 'response_str', {'ident':ans_key, 'rcardinality':'Single', 'rtiming':'No'})
+            render_fib = etree.SubElement(response_str, 'render_choice', {'charset':'us-ascii', "columns":"0", 'encoding':'UTF_8', 'fibtype':'String', 'maxchars':'0', 'maxnumber':'0', 'minnumber':'0', 'prompt':'Box', 'rows':'0'})
+
+        resprocessing = etree.SubElement(item, 'resprocessing', {'scoremodel':'SumOfScores'})
+        outcomes = etree.SubElement(resprocessing, 'outcomes', {})
+        decvar = etree.SubElement(outcomes, 'decvar', {'varname':'SCORE', 'vartype':'Decimal', 'defaultval':'0', 'minvalue':'0'})
+        
+        respcondition = etree.SubElement(resprocessing, 'respcondition', {'title':'correct'})
+        conditionvar = etree.SubElement(respcondition, 'conditionvar')
+        and_tag = etree.SubElement(conditionvar, 'and')
+        for ans_key, regex_exprs in answers.items():
+            or_tag = etree.SubElement(and_tag, 'or')
+            for regex in regex_exprs:
+                etree.SubElement(or_tag, 'varsubset', {'respident':ans_key, 'setmatch':'Matches'}).text = regex
+            self.htmlfile += '<li class="correct">'+regex+'</li>'
+        etree.SubElement(respcondition, 'setvar', {'variablename':'SCORE', 'action':'Set'}).text = 'SCORE.max'
+        etree.SubElement(respcondition, 'displayfeedback', {'linkrefid':'correct', 'feedbacktype':'Response'})
+
+        respcondition = etree.SubElement(resprocessing, 'respcondition', {'title':'incorrect'})
+        conditionvar = etree.SubElement(respcondition, 'conditionvar')
+        etree.SubElement(conditionvar, 'other')
+        etree.SubElement(respcondition, 'setvar', {'variablename':'SCORE', 'action':'Set'}).text = '0'
+        etree.SubElement(respcondition, 'displayfeedback', {'linkrefid':'incorrect', 'feedbacktype':'Response'})
+        
+        itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'correct', 'view':'All'})
+        bb_pos_feedback_text, html_pos_feedback_text = self.package.process_string(positive_feedback)
+        self.flow_mat2(itemfeedback, bb_pos_feedback_text)
+        
+        itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'incorrect', 'view':'All'})
+        bb_neg_feedback_text, html_neg_feedback_text = self.package.process_string(negative_feedback)
+        self.flow_mat2(itemfeedback, bb_neg_feedback_text)
+
+        self.htmlfile += '</ul>'
+        self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
+        self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
+        self.htmlfile += '</li>'
+
+        
     def addCalcQ(self, title, text, xs, count, calc, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
         #This fancy loop goes over all permutations of the variables in xs
         for i in range(count):
@@ -302,7 +378,7 @@ class Pool:
             # Calculate all random variables
             for xk in xs:
                 if hasattr(xs[xk][0], 'rvs'):
-                    x[xk] = float('{:.{p}g}'.format(xs[xk][0].rvs(1)[0], p=xs[xk][1])) #round to given S.F.
+                    x[xk] =  roundSF(xs[xk][0].rvs(1)[0], xs[xk][1]) #round to given S.F.
                 elif isinstance(xs[xk][0], list):
                     x[xk] = random.choice(xs[xk][0]) #Random choice from list
                 else:
@@ -312,10 +388,19 @@ class Pool:
             x = calc(x)
             
             t = text
+            pos = positive_feedback
+            neg = negative_feedback
             for var, val in x.items():
-                t = t.replace('['+var+']', str(val))
+                if isinstance(val, sympy.Basic):
+                    t = t.replace('['+var+']', sympy.latex(val))
+                    pos = pos.replace('['+var+']', sympy.latex(val))
+                    neg = neg.replace('['+var+']', sympy.latex(val))
+                else:
+                    t = t.replace('['+var+']', str(val))
+                    pos = pos.replace('['+var+']', str(val))
+                    neg = neg.replace('['+var+']', str(val))
             
-            self.addNumQ(title=title, text=t, answer=x['answer'], errfrac=errfrac, erramt=erramt, errlow=errlow, errhigh=errhigh, positive_feedback=positive_feedback, negative_feedback=negative_feedback)
+            self.addNumQ(title=title, text=t, answer=x['answer'], errfrac=errfrac, erramt=erramt, errlow=errlow, errhigh=errhigh, positive_feedback=pos, negative_feedback=neg)
         
     def flow_mat2(self, node, text):
         flow = etree.SubElement(node, 'flow_mat', {'class':'Block'})
