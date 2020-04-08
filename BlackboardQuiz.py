@@ -152,7 +152,7 @@ class Pool:
         self.package.embed_resource(self.pool_name, "assessment/x-bb-qti-pool", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
         
     def addNumQ(self, title, text, answer, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
-        if not errfrac and not erramt and ((not errlow) or (not errhigh)):
+        if errfrac is None and erramt is None and (errlow is None or errhigh is None):
             raise Exception("Numerical questions require an error amount, fraction, or bounds")
         if errfrac != None:
             errlow = answer * (1-errfrac)
@@ -227,7 +227,7 @@ class Pool:
         self.htmlfile += '<li class="correct"><b>'+repr(errlow)+' &le; Answer &le; '+repr(errhigh)+'</b>:'+html_pos_feedback_text+'</li>'
         self.htmlfile += '<li class="incorrect"><b>Else</b>:'+html_neg_feedback_text+'</li>'
         self.htmlfile += '</ul></li>'
-
+        print("Added NumQ "+repr(title))
         
     def addMCQ(self, title, text, answers, correct=0, positive_feedback="Good work", negative_feedback="That's not correct", shuffle_ans=True):
         
@@ -324,6 +324,7 @@ class Pool:
         self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
         self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
         self.htmlfile += '</li>'
+        print("Added MCQ "+repr(title))
 
     def addFITBQ(self, title, text, answers, positive_feedback="Good work", negative_feedback="That's not correct"):
         """Fill in the blank questions"""
@@ -396,10 +397,14 @@ class Pool:
         self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
         self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
         self.htmlfile += '</li>'        
+        print("Added FITBQ "+repr(title))
 
     def addCalcNumQ(self, title, text, xs, count, calc, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
         #This fancy loop goes over all permutations of the variables in xs
-        for i in range(count):
+        i = 0
+        while True:
+            if i >= count:
+                break;
             x = {}
             # Calculate all random variables
             for xk in xs:
@@ -412,6 +417,14 @@ class Pool:
 
             # Run the calculation
             x = calc(x)
+            
+            if x is None:
+                continue
+
+            if 'erramt' in x:
+                erramt = x['erramt']
+            
+            i += 1
             
             t = text
             pos = positive_feedback
@@ -468,12 +481,19 @@ class Package:
 
         self.idcntr = 3191882
         self.latex_kwargs = dict()
-
         self.latex_cache = {}
         
     def bbid(self):
         self.idcntr += 1
         return self.idcntr
+
+    def create_unique_filename(self, base, ext):
+        count = 0
+        while True:
+            fname = base+'_'+str(count)+ext
+            if not os.path.isfile(fname):
+                return fname
+            count += 1
     
     def close(self):
         #Write additional data to implement the course name
@@ -584,22 +604,45 @@ class Package:
     def embed_file(self, filename, file_data=None, attrib={}):
         """Embeds a file, and returns an img tag for use in blackboard, and an equivalent for html.
         """
-        #Check if it is a real file being embedded
+        #Grab the file data
         if file_data == None:
-            #Check if this file has already been embedded
-            if filename in self.embedded_files:
-                #It has, return the already embedded data
-                return self.embedded_files[filename]
-
-            #It has not, load the data
             with open(filename, mode='rb') as file:
                 file_data = file.read()
+            
+        #Check if this file has already been embedded
+        if filename not in  self.embedded_files:
             xid, path = self.embed_file_data(filename, file_data)
             self.embedded_files[filename] = (xid, path)
             return xid, path
-        else:
-            return self.embed_file_data(filename, file_data)
-
+            
+        #Hmm something already exists with that name, check the data
+        xid, path = self.embedded_files[filename]
+        fz = self.zf.open(path)
+        if file_data == fz.read():
+            #It is the same file! return the existing link
+            return xid, path
+        fz.close()
+        
+        #Try generating a new filename, checking if that already exists in the store too
+        count=-1
+        fbase, ext = os.path.splitext(filename)
+        while True:
+            count += 1 
+            fname = fbase + '_'+str(count)+ext
+            if fname in self.embedded_files:
+                xid, path = self.embedded_files[fname]
+                fz = self.zf.open(path)
+                if file_data == fz.read():
+                    return xid, path
+                else:
+                    continue
+            break
+        #OK we have a new unique name, fname. Use this to embed the file
+        xid, path = self.embed_file_data(fname, file_data)
+        self.embedded_files[fname] = (xid, path)
+        return xid, path
+        
+                                
     def embed_image(self, filename, img_data=None, attrib={}):
         xid, path = self.embed_file(filename, img_data)
         output_bb = '<img src="@X@EmbeddedFile.requestUrlStub@X@bbcswebdav/xid-'+xid+'"'
