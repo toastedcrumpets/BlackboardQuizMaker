@@ -155,8 +155,9 @@ class Pool:
         if errfrac is None and erramt is None and (errlow is None or errhigh is None):
             raise Exception("Numerical questions require an error amount, fraction, or bounds")
         if errfrac != None:
-            errlow = answer * (1-errfrac)
-            errhigh = answer * (1+errfrac)
+            #Min max are required here as some questions may have negative answers
+            errlow = min(answer * (1-errfrac), answer * (1+errfrac))
+            errhigh = max(answer * (1-errfrac), answer * (1+errfrac))
         if erramt != None:
             errlow = answer - abs(erramt)
             errhigh = answer + abs(erramt)
