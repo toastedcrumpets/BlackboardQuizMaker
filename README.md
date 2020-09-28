@@ -19,7 +19,15 @@ ubuntu like so:
 sudo apt-get install python-lxml python-image imagemagick  python-sympy
 ```
 
-It should also work on windows!
+It also works on Windows!  If you use conda, this command will create
+a new conda environment called 'blackboard' and download and
+install all the necessary prerequisite packages.
+Then the activate command will select that environment so that
+you can run your scripts.
+```
+conda create -n blackboard lxml imagemagick pillow scipy sympy
+conda activate blackboard
+```
 
 # How to use it (python)
 Create an instance of the Package class using the "with" pattern, add one or more Pools, then add questions to each pool!
