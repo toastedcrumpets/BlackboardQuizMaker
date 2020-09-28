@@ -26,7 +26,7 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
         #Embedding external images is easy too and will automatically
         #be included into the package. Other HTML can also be used for
         #formatting, I don't check it.
-        pool.addMCQ('HTML question', 'I cant believe that you can embed images! <img src="example_image.png"> Cool huh?',
+        pool.addMCQ('HTML question', 'I cant believe that you can embed images! <img src="example_image.png" width="100"> Cool huh?',
                     ['Really cool.', 'Well, its not that impressive, its basic functionality.', 'Blackboard sucks.'],
                     correct=0)
 
@@ -34,7 +34,8 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
     with package.createPool('Linear function solving', description="Solve the $y=m*x+c$", instructions="") as pool:
         import random
         for i in range(10):
-            m = round(random.uniform(-10, 10), 2) #2 d.p. random m in [-10,10]
+            # m = round(random.uniform(-10, 10), 2) #2 d.p. random m in [-10,10]
+            m = round(random.uniform(1, 10), 2)  # 2 d.p. random m in [1,10] to avoid div-by-zero
             y = round(random.uniform(-42, 42), 2) #2 d.p. random m in [-42,42]
             c = round(random.uniform(-100, 100), 2) #2 d.p. random m in [-100,100]
             x = round((y-c)/m, 2) #The answer
@@ -46,7 +47,8 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
         import scipy
         #First, declare the "random" variables
         xs = {
-            'm' : [scipy.stats.uniform(-10, 10), 2], #2 S.F.
+            # 'm' : [scipy.stats.uniform(-10, 10), 2], #2 S.F.
+            'm' : [scipy.stats.uniform(1, 10), 2], #2 S.F. in [1,10] to avoid div-by-zero
             'y' : [scipy.stats.uniform(-42, 42), 2],  #2 S.F.
             'c' : [[1.2, 3.4, 5.5], None] # A list of potential values
         }
