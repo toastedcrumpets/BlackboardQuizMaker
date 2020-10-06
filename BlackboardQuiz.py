@@ -679,7 +679,8 @@ class Package:
 
         attrib['width'] = str(width_px)
         attrib['height'] = str(height_px)
-        attrib['alt'] = escape(formula)
+        # we escape '[' and ']' too, since they cause problems in Fill-in-the-Blank questions.
+        attrib['alt'] = escape(formula, entities={'[': '(', ']': ')'})
         self.latex_cache[formula] = self.embed_image(name, img_data, attrib=attrib)
         return self.latex_cache[formula]
 
