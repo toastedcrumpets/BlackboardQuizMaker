@@ -666,7 +666,7 @@ class Package:
         name = "LaTeX/eq"+str(self.equation_counter)+".png"
         self.equation_counter += 1
 
-        img_data, width_px, height_px = render_latex(formula, display=display, **self.latex_kwargs)
+        img_data, width_px, height_px = render_latex(formula, display=display, dvioptions=['-D','125'], **self.latex_kwargs)
 
         #This gives a 44px=1em height
         width_em = width_px / 44.0
