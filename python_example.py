@@ -20,12 +20,9 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
                 
         # Can adjust the partial mark weights on the multiple answer questions as well
         pool.addMAQ('Composites','Which of the following are composite numbers? (this question has custom weights)', answers=["2", "3", "4", "5", "6", "87"],  correct=[2,4,5], positive_feedback="", negative_feedback="", weights=[-33.33,-33.33,25,-33.34,25,50])
-<<<<<<< HEAD
         
         #Short Response question
-        pool.addSRQ('CDF','What are the necessary properties of a cumulative distribution function', answer='non-decreasing, goes to 0 at minus infinity, goes to 1 at plus infinity', positive_feedback="", negative_feedback="", rows=3, maxchars=0)
-=======
->>>>>>> d9a771d6d481c2ea1799b3c360c48cc64f2f7563
+        pool.addSRQ('CDF','What are the necessary properties of a cumulative distribution function', answer='Non-decreasing, goes to 0 at minus infinity, goes to 1 at plus infinity', positive_feedback="", negative_feedback="", rows=3, maxchars=0)
 
         #Maths can be included using latex
         pool.addMCQ('Math question', 'Please solve this "display" equation: $$\\int x\,dx=?$$',
@@ -41,7 +38,7 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
         pool.addMCQ('HTML question', 'I cant believe that you can embed images! <img src="example_image.png" width="100"> Cool huh?',
                     ['Really cool.', 'Well, its not that impressive, its basic functionality.', 'Blackboard sucks.'],
                     correct=0)
-
+    
     #Create a pool with 10 variations of the same simple linear equation to solve.
     with package.createPool('Linear function solving', description="Solve the $y=m*x+c$", instructions="") as pool:
         import random
@@ -96,4 +93,4 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
                           'C':[r'''w[o0]{2}d'''], # Allow leet speak (i.e. w00d or wo0d or w0od)
                           'D':['chuck', 'Chuck', 'CHUCK'], #Multiple matching patterns if needed
                       })
-
+    
