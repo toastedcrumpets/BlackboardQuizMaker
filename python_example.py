@@ -14,6 +14,12 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
 
         #Or multiple choice questions
         pool.addMCQ('Shakespeare','To be, or not to be', answers=["To be.", "Not to be.", "That is the question.", "Both."],  correct=2, positive_feedback="Again, you have read well.", negative_feedback="Try reading Hamlet.")
+        
+        #Or multiple answer questions (with automatic choice of partial mark weights)
+        pool.addMAQ('Primes','Which of the following are prime numbers?', answers=["2", "3", "4", "5", "6", "87"],  correct=[0,1,3], positive_feedback="", negative_feedback="")
+                
+        # Can adjust the partial mark weights on the multiple answer questions as well
+        pool.addMAQ('Composites','Which of the following are composite numbers? (this question has custom weights)', answers=["2", "3", "4", "5", "6", "87"],  correct=[2,4,5], positive_feedback="", negative_feedback="", weights=[-33.33,-33.33,25,-33.34,25,50])
 
         #Maths can be included using latex
         pool.addMCQ('Math question', 'Please solve this "display" equation: $$\\int x\,dx=?$$',
