@@ -439,6 +439,7 @@ class Pool:
         self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
         self.htmlfile += '</li>'
         print("Added MAQ "+repr(title))
+<<<<<<< HEAD
             
     def addSRQ(self, title, text, answer='', positive_feedback="Good work", negative_feedback="That's not correct", rows=3, maxchars=0):
         # BH: added this, need thorough testing...
@@ -518,6 +519,8 @@ class Pool:
         self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
         self.htmlfile += '</li>'
         print("Added SRQ "+repr(title)) ## changed
+=======
+>>>>>>> d9a771d6d481c2ea1799b3c360c48cc64f2f7563
 
     def addFITBQ(self, title, text, answers, positive_feedback="Good work", negative_feedback="That's not correct"):
         """Fill in the blank questions"""

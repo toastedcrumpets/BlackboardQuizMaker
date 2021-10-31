@@ -20,9 +20,12 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
                 
         # Can adjust the partial mark weights on the multiple answer questions as well
         pool.addMAQ('Composites','Which of the following are composite numbers? (this question has custom weights)', answers=["2", "3", "4", "5", "6", "87"],  correct=[2,4,5], positive_feedback="", negative_feedback="", weights=[-33.33,-33.33,25,-33.34,25,50])
+<<<<<<< HEAD
         
         #Short Response question
         pool.addSRQ('CDF','What are the necessary properties of a cumulative distribution function', answer='non-decreasing, goes to 0 at minus infinity, goes to 1 at plus infinity', positive_feedback="", negative_feedback="", rows=3, maxchars=0)
+=======
+>>>>>>> d9a771d6d481c2ea1799b3c360c48cc64f2f7563
 
         #Maths can be included using latex
         pool.addMCQ('Math question', 'Please solve this "display" equation: $$\\int x\,dx=?$$',
