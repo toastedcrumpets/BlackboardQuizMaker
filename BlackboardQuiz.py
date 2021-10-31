@@ -439,6 +439,85 @@ class Pool:
         self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
         self.htmlfile += '</li>'
         print("Added MAQ "+repr(title))
+            
+    def addSRQ(self, title, text, answer='', positive_feedback="Good work", negative_feedback="That's not correct", rows=3, maxchars=0):
+        # BH: added this, need thorough testing...
+        # answers - an optional sample answer
+        # rows - number of lines/rows to provide for text entry
+        # maxchars - limit the number of characters (0 means no limit)
+        
+        self.question_counter += 1
+        question_id = 'q'+str(self.question_counter)
+        #Add the question to the list of questions
+        item = etree.SubElement(self.section, 'item', {'title':title, 'maxattempts':'0'})
+        md = etree.SubElement(item, 'itemmetadata')
+        for key, val in [
+                ('bbmd_asi_object_id', '_'+str(self.package.bbid())+'_1'),
+                ('bbmd_asitype', 'Item'),
+                ('bbmd_assessmenttype', 'Pool'),
+                ('bbmd_sectiontype', 'Subsection'),
+                ('bbmd_questiontype', 'Short Response'), # changed
+                ('bbmd_is_from_cartridge', 'false'),
+                ('bbmd_is_disabled', 'false'),
+                ('bbmd_negative_points_ind', 'N'),
+                ('bbmd_canvas_fullcrdt_ind', 'false'),
+                ('bbmd_all_fullcredit_ind', 'false'),
+                ('bbmd_numbertype', 'none'),
+                ('bbmd_partialcredit', 'true'), # 'true' to allow partial credit?
+                ('bbmd_orientationtype', 'vertical'),
+                ('bbmd_is_extracredit', 'false'),
+                ('qmd_absolutescore_max', '-1.0'), # '-1.0' possibly means no maximum?
+                ('qmd_weighting', '0'),
+                ('qmd_instructornotes', ''),
+        ]:
+            etree.SubElement(md, key).text = val
+        
+        presentation = etree.SubElement(item, 'presentation')
+        flow1 = etree.SubElement(presentation, 'flow', {'class':'Block'})
+        flow2 = etree.SubElement(flow1, 'flow', {'class':'QUESTION_BLOCK'})
+        flow3 = etree.SubElement(flow2, 'flow', {'class':'FORMATTED_TEXT_BLOCK'})
+
+        bb_question_text, html_question_text = self.package.process_string(text)
+        self.htmlfile += '<li>'+html_question_text+'<ul>'
+        self.material(flow3, bb_question_text)
+
+        flow2 = etree.SubElement(flow1, 'flow', {'class':'RESPONSE_BLOCK'})
+        response_str = etree.SubElement(flow2, 'response_str', {'ident':'response', 'rcardinality':'Single', 'rtiming':'No'})
+        render_fib = etree.SubElement(response_str, 'render_fib', {'charset':'us-ascii', 'encoding':'UTF_*', 'rows':'{:d}'.format(rows), 'columns':'127', 'maxchars':'{:d}'.format(maxchars), 'prompt':'Box', 'fibtype':'string', 'minnumber':'0', 'maxnumber':'0'})
+            
+        resprocessing = etree.SubElement(item, 'resprocessing', {'scoremodel':'SumOfScores'})
+        outcomes = etree.SubElement(resprocessing, 'outcomes', {})
+        decvar = etree.SubElement(outcomes, 'decvar', {'varname':'SCORE', 'vartype':'Decimal', 'defaultval':'0', 'minvalue':'0'})
+        
+        respcondition = etree.SubElement(resprocessing, 'respcondition', {'title':'correct'})
+        conditionvar = etree.SubElement(respcondition, 'conditionvar')
+        etree.SubElement(respcondition, 'setvar', {'variablename':'SCORE', 'action':'Set'}).text = 'SCORE.max'
+        etree.SubElement(respcondition, 'displayfeedback', {'linkrefid':'correct', 'feedbacktype':'Response'})
+        respcondition = etree.SubElement(resprocessing, 'respcondition', {'title':'incorrect'})
+        conditionvar = etree.SubElement(respcondition, 'conditionvar')
+        etree.SubElement(conditionvar, 'other')
+        etree.SubElement(respcondition, 'setvar', {'variablename':'SCORE', 'action':'Set'}).text = '0'
+        etree.SubElement(respcondition, 'displayfeedback', {'linkrefid':'incorrect', 'feedbacktype':'Response'})
+        
+        itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'correct', 'view':'All'})
+        bb_pos_feedback_text, html_pos_feedback_text = self.package.process_string(positive_feedback)
+        self.flow_mat2(itemfeedback, bb_pos_feedback_text)
+        
+        itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'incorrect', 'view':'All'})
+        bb_neg_feedback_text, html_neg_feedback_text = self.package.process_string(negative_feedback)
+        self.flow_mat2(itemfeedback, bb_neg_feedback_text)
+        
+        itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'solution', 'view':'All'})
+        solution = etree.SubElement(itemfeedback, 'solution', {'view':'All', 'feedbackstyle':'Complete'})
+        solutionmaterial = etree.SubElement(solution, 'solutionmaterial')
+        self.flow_mat2(solutionmaterial, answer)
+        self.htmlfile += '<li class="correct">Sample answer:'+answer+'</li>'
+        
+        self.htmlfile += '</ul>'
+        self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
+        self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
+        self.htmlfile += '</li>'
+        print("Added SRQ "+repr(title)) ## changed
 
     def addFITBQ(self, title, text, answers, positive_feedback="Good work", negative_feedback="That's not correct"):
         """Fill in the blank questions"""
