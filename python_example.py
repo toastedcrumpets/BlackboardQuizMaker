@@ -45,7 +45,6 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
                     ['Really cool.', 'Well, its not that impressive, its basic functionality.', 'Blackboard sucks.'],
                     correct=0)
     
-    """
     #Create a pool with 10 variations of the same simple linear equation to solve.
     with package.createPool('Linear function solving', description="Solve the $y=m*x+c$", instructions="") as pool:
         import random
@@ -100,4 +99,4 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
                           'C':[r'''w[o0]{2}d'''], # Allow leet speak (i.e. w00d or wo0d or w0od)
                           'D':['chuck', 'Chuck', 'CHUCK'], #Multiple matching patterns if needed
                       })
-    """
+    
