@@ -201,7 +201,6 @@ class Pool:
         flow2 = etree.SubElement(flow1, 'flow', {'class':'RESPONSE_BLOCK'})
         response_num = etree.SubElement(flow2, 'response_num', {'ident':'response', 'rcardinality':'Single', 'rtiming':'No'})
         etree.SubElement(response_num, 'render_fib', {'charset':'us-ascii', 'encoding':'UTF_8', 'rows':'0', 'columns':'0', 'maxchars':'0', 'prompt':'Box', 'fibtype':'Decimal', 'minnumber':'0', 'maxnumber':'0'})
-
         
         resprocessing = etree.SubElement(item, 'resprocessing', {'scoremodel':'SumOfScores'})
         outcomes = etree.SubElement(resprocessing, 'outcomes', {})
@@ -224,9 +223,10 @@ class Pool:
         itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'incorrect', 'view':'All'})
         bb_neg_feedback_text, html_neg_feedback_text = self.package.process_string(negative_feedback)
         self.flow_mat2(itemfeedback, bb_neg_feedback_text)
-        
-        self.htmlfile += '<li class="correct"><b>'+repr(errlow)+' &le; Answer &le; '+repr(errhigh)+'</b>:'+html_pos_feedback_text+'</li>'
-        self.htmlfile += '<li class="incorrect"><b>Else</b>:'+html_neg_feedback_text+'</li>'
+                
+        if len(positive_feedback)+len(negative_feedback)>0:
+            self.htmlfile += '<li class="correct"><b>'+repr(errlow)+' &le; Answer &le; '+repr(errhigh)+'</b>:'+html_pos_feedback_text+'</li>'
+            self.htmlfile += '<li class="incorrect"><b>Else</b>:'+html_neg_feedback_text+'</li>'
         self.htmlfile += '</ul></li>'
         print("Added NumQ "+repr(title))
         
@@ -320,12 +320,12 @@ class Pool:
             solution = etree.SubElement(itemfeedback, 'solution', {'view':'All', 'feedbackstyle':'Complete'})
             solutionmaterial = etree.SubElement(solution, 'solutionmaterial')
             self.flow_mat2(solutionmaterial, '')
-
+        
+        self.htmlfile += '</ul>'
         if len(positive_feedback)+len(negative_feedback)>0:
-            self.htmlfile += '</ol>'
             self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
             self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
-            self.htmlfile += '</li>'
+        self.htmlfile += '</li>'
         print("Added MCQ "+repr(title))
     
     def addMAQ(self, title, text, answers, correct=[0], positive_feedback="Good work", negative_feedback="That's not correct", shuffle_ans=True, weights=None):
@@ -434,12 +434,12 @@ class Pool:
             solution = etree.SubElement(itemfeedback, 'solution', {'view':'All', 'feedbackstyle':'Complete'})
             solutionmaterial = etree.SubElement(solution, 'solutionmaterial')
             self.flow_mat2(solutionmaterial, '')
-
+        
+        self.htmlfile += '</ul>'
         if len(positive_feedback)+len(negative_feedback)>0:
-            self.htmlfile += '</ol>'
             self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
             self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
-            self.htmlfile += '</li>'
+        self.htmlfile += '</li>'
         print("Added MAQ "+repr(title))
             
     def addSRQ(self, title, text, answer='', positive_feedback="Good work", negative_feedback="That's not correct", rows=3, maxchars=0):
@@ -515,12 +515,12 @@ class Pool:
         flow = etree.SubElement(solutionmaterial, 'flow_mat', {'class':'Block'})
         self.material(flow,answer)
         self.htmlfile += '<li class="correct">Sample answer: '+answer+'</li>'
-        
+                
+        self.htmlfile += '</ul>'
         if len(positive_feedback)+len(negative_feedback)>0:
-            self.htmlfile += '</ol>'
             self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
             self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
-            self.htmlfile += '</li>'
+        self.htmlfile += '</li>'
         print("Added SRQ "+repr(title)) ## changed
             
     def addTFQ(self, title, text, istrue=True, positive_feedback="Good work", negative_feedback="That's not correct"):
@@ -596,12 +596,12 @@ class Pool:
         itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'incorrect', 'view':'All'})
         bb_neg_feedback_text, html_neg_feedback_text = self.package.process_string(negative_feedback)
         self.flow_mat2(itemfeedback, bb_neg_feedback_text)
-        
+                
+        self.htmlfile += '</ul>'
         if len(positive_feedback)+len(negative_feedback)>0:
-            self.htmlfile += '</ol>'
             self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
             self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
-            self.htmlfile += '</li>'
+        self.htmlfile += '</li>'
         print("Added TFQ "+repr(title)) ## changed
     
     def addOQ(self, title, text, answers, positive_feedback="Good work", negative_feedback="That's not correct", shuffle_inds=None):
@@ -686,12 +686,12 @@ class Pool:
         itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'incorrect', 'view':'All'})
         bb_neg_feedback_text, html_neg_feedback_text = self.package.process_string(negative_feedback)
         self.flow_mat2(itemfeedback, bb_neg_feedback_text)
-
+        
+        self.htmlfile += '</ol>'
         if len(positive_feedback)+len(negative_feedback)>0:
-            self.htmlfile += '</ol>'
             self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
             self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
-            self.htmlfile += '</li>'
+        self.htmlfile += '</li>'
         print("Added OQ "+repr(title))
 
     def addFITBQ(self, title, text, answers, positive_feedback="Good work", negative_feedback="That's not correct"):
@@ -760,12 +760,12 @@ class Pool:
         itemfeedback = etree.SubElement(item, 'itemfeedback', {'ident':'incorrect', 'view':'All'})
         bb_neg_feedback_text, html_neg_feedback_text = self.package.process_string(negative_feedback)
         self.flow_mat2(itemfeedback, bb_neg_feedback_text)
-
+        
+        self.htmlfile += '</ul>'
         if len(positive_feedback)+len(negative_feedback)>0:
-            self.htmlfile += '</ol>'
             self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
             self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
-            self.htmlfile += '</li>'
+        self.htmlfile += '</li>'
         print("Added FITBQ "+repr(title))
 
     def addCalcNumQ(self, title, text, xs, count, calc, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
