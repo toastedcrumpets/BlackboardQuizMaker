@@ -23,6 +23,9 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
         
         #Short Response question
         pool.addSRQ('CDF','What are the necessary properties of a cumulative distribution function', answer='Non-decreasing, goes to 0 at minus infinity, goes to 1 at plus infinity', positive_feedback="", negative_feedback="", rows=3, maxchars=0)
+        
+        #True/False question
+        pool.addTFQ('PDF','True or False: A probability density function must be less than or equal to one everywhere.', istrue=False, positive_feedback="", negative_feedback="")
 
         #Maths can be included using latex
         pool.addMCQ('Math question', 'Please solve this "display" equation: $$\\int x\,dx=?$$',
