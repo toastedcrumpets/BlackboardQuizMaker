@@ -9,7 +9,7 @@ Hopefully his will help you work around the limitations (and slow
 performance) of the blackboard equation editor. It also allows you to
 generate permutations of questions programmatically.
 
-BH: multiple answer, short response and true/false questions now supported.
+BH: multiple answer, short response true/false, and ordering questions now supported.
 
 # Dependencies
 

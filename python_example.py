@@ -26,6 +26,9 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
         
         #True/False question
         pool.addTFQ('PDF','True or False: A probability density function must be less than or equal to one everywhere.', istrue=False, positive_feedback="", negative_feedback="")
+        
+        #Ordering question
+        pool.addOQ('Ordering','Order the following numbers from smallest to largest:', answers=["2","5","11","18"], positive_feedback="", negative_feedback="")
 
         #Maths can be included using latex
         pool.addMCQ('Math question', 'Please solve this "display" equation: $$\\int x\,dx=?$$',
@@ -42,6 +45,7 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
                     ['Really cool.', 'Well, its not that impressive, its basic functionality.', 'Blackboard sucks.'],
                     correct=0)
     
+    """
     #Create a pool with 10 variations of the same simple linear equation to solve.
     with package.createPool('Linear function solving', description="Solve the $y=m*x+c$", instructions="") as pool:
         import random
@@ -96,4 +100,4 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
                           'C':[r'''w[o0]{2}d'''], # Allow leet speak (i.e. w00d or wo0d or w0od)
                           'D':['chuck', 'Chuck', 'CHUCK'], #Multiple matching patterns if needed
                       })
-    
+    """
