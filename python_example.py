@@ -29,6 +29,9 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
         
         #Ordering question
         pool.addOQ('Ordering','Order the following numbers from smallest to largest:', answers=["2","5","11","18"], positive_feedback="", negative_feedback="")
+        
+        #Matching question
+        pool.addMQ('Matching','Match the following:', answer_pairs=[["one","1"],["two","2"],["three","3"],["four","4"]], unmatched=["5","6"], positive_feedback="", negative_feedback="")
 
         #Maths can be included using latex
         pool.addMCQ('Math question', 'Please solve this "display" equation: $$\\int x\,dx=?$$',
@@ -41,8 +44,8 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
         #Embedding external images is easy too and will automatically
         #be included into the package. Other HTML can also be used for
         #formatting, I don't check it.
-        pool.addMCQ('HTML question', 'I cant believe that you can embed images! <img src="example_image.png" width="100"> Cool huh?',
-                    ['Really cool.', 'Well, its not that impressive, its basic functionality.', 'Blackboard sucks.'],
+        pool.addMCQ('HTML question', 'I can\'t believe that you can embed images! <img src="example_image.png" width="100"> Cool huh?',
+                    ['Really cool.', 'Well, it\'s not that impressive, it\'s basic functionality.', 'Blackboard sucks.'],
                     correct=0)
     
     #Create a pool with 10 variations of the same simple linear equation to solve.
