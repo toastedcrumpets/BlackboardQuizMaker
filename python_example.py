@@ -14,6 +14,24 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
 
         #Or multiple choice questions
         pool.addMCQ('Shakespeare','To be, or not to be', answers=["To be.", "Not to be.", "That is the question.", "Both."],  correct=2, positive_feedback="Again, you have read well.", negative_feedback="Try reading Hamlet.")
+        
+        #Or multiple answer questions (with automatic choice of partial mark weights)
+        pool.addMAQ('Primes','Which of the following are prime numbers?', answers=["2", "3", "4", "5", "6", "87"],  correct=[0,1,3], positive_feedback="", negative_feedback="")
+                
+        # Can adjust the partial mark weights on the multiple answer questions as well
+        pool.addMAQ('Composites','Which of the following are composite numbers? (this question has custom weights)', answers=["2", "3", "4", "5", "6", "87"],  correct=[2,4,5], positive_feedback="", negative_feedback="", weights=[-33.33,-33.33,25,-33.34,25,50])
+        
+        #Short Response question
+        pool.addSRQ('CDF','What are the necessary properties of a cumulative distribution function', answer='Non-decreasing, goes to 0 at minus infinity, goes to 1 at plus infinity', positive_feedback="", negative_feedback="", rows=3, maxchars=0)
+        
+        #True/False question
+        pool.addTFQ('PDF','True or False: A probability density function must be less than or equal to one everywhere.', istrue=False, positive_feedback="", negative_feedback="")
+        
+        #Ordering question
+        pool.addOQ('Ordering','Order the following numbers from smallest to largest:', answers=["2","5","11","18"], positive_feedback="", negative_feedback="")
+        
+        #Matching question
+        pool.addMQ('Matching','Match the following:', answer_pairs=[["one","1"],["two","2"],["three","3"],["four","4"]], unmatched=["5","6"], positive_feedback="", negative_feedback="")
 
         #Maths can be included using latex
         pool.addMCQ('Math question', 'Please solve this "display" equation: $$\\int x\,dx=?$$',
@@ -26,10 +44,10 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
         #Embedding external images is easy too and will automatically
         #be included into the package. Other HTML can also be used for
         #formatting, I don't check it.
-        pool.addMCQ('HTML question', 'I cant believe that you can embed images! <img src="example_image.png" width="100"> Cool huh?',
-                    ['Really cool.', 'Well, its not that impressive, its basic functionality.', 'Blackboard sucks.'],
+        pool.addMCQ('HTML question', 'I can\'t believe that you can embed images! <img src="example_image.png" width="100"> Cool huh?',
+                    ['Really cool.', 'Well, it\'s not that impressive, it\'s basic functionality.', 'Blackboard sucks.'],
                     correct=0)
-
+    
     #Create a pool with 10 variations of the same simple linear equation to solve.
     with package.createPool('Linear function solving', description="Solve the $y=m*x+c$", instructions="") as pool:
         import random
@@ -84,4 +102,4 @@ with BlackboardQuiz.Package("MyQuestionPools") as package:
                           'C':[r'''w[o0]{2}d'''], # Allow leet speak (i.e. w00d or wo0d or w0od)
                           'D':['chuck', 'Chuck', 'CHUCK'], #Multiple matching patterns if needed
                       })
-
+    

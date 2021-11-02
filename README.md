@@ -9,6 +9,8 @@ Hopefully his will help you work around the limitations (and slow
 performance) of the blackboard equation editor. It also allows you to
 generate permutations of questions programmatically.
 
+BH: multiple answer, short response true/false, ordering and matching questions now supported.
+
 # Dependencies
 
 This package requires a working installation of python, python-lxml,
