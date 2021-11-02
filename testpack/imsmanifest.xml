@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="man00001"
+	  xmlns:bb="http://www.blackboard.com/content-packaging/">
+  <organizations/>
+  <resources>
+    <resource bb:file="res00001.dat"
+   bb:title="single.qti.export.referenced.canvas.name.prefix Test Pool" identifier="res00001"
+   type="assessment/x-bb-qti-pool" xml:base="res00001"/>
+    <resource bb:file="res00002.dat"
+   bb:title="single.qti.export.referenced.canvas.name.prefix Mid-term resit 2020-21 3.0 Compressor upset [5 marks]"
+   identifier="res00002" type="assessment/x-bb-qti-pool" xml:base="res00002"/>
+    <resource bb:file="res00003.dat"
+	      bb:title="Test Title/Name" identifier="res00003" type="assessment/x-bb-qti-test" xml:base="res00003"/>
+  </resources>
+</manifest>
