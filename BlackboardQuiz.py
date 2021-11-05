@@ -103,7 +103,7 @@ class BlackBoardObject:
         
         
 class Pool(BlackBoardObject):
-    def __init__(self, pool_name, package, description="Created by BlackboardQuiz!", instructions="", preview=True, test=None):
+    def __init__(self, pool_name, package, description="Created by BlackboardQuiz!", instructions="", preview=True, test=None, points_per_q=10, questions_per_test=1):
         """Initialises a question pool
         """
         self.package = package
@@ -111,6 +111,8 @@ class Pool(BlackBoardObject):
         self.preview = preview
         self.question_counter = 0
         self.test = test
+        self.points_per_q = points_per_q
+        self.questions_per_test = questions_per_test
         
         #Create the question data file
         self.questestinterop = etree.Element("questestinterop")
@@ -145,7 +147,7 @@ class Pool(BlackBoardObject):
         ref = self.package.embed_resource(self.pool_name, "assessment/x-bb-qti-pool", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
         
         if self.test is not None:
-            self.test.add_pool(ref)
+            self.test.add_pool(ref, self.points_per_q, self.questions_per_test)
         
     def addNumQ(self, title, text, answer, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
         if errfrac is None and erramt is None and (errlow is None or errhigh is None):
@@ -947,14 +949,14 @@ class Test(BlackBoardObject):
 
         self.package.embed_resource(self.test_name, "assessment/x-bb-qti-test", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
 
-    def add_pool(self, pool_ref):
+    def add_pool(self, pool_ref, points_per_q=10, how_many_qs=1):
         subsec = etree.SubElement(self.section, 'section')
 
-        self.metadata(subsec, 'Section', 'Test', sectiontype='Random Block', scoremax=10.0, weight=10.0)
+        self.metadata(subsec, 'Section', 'Test', sectiontype='Random Block', scoremax=how_many_qs * points_per_q, weight=points_per_q)
         
         selection_ordering = etree.SubElement(subsec, 'selection_ordering')
         selection = etree.SubElement(selection_ordering, 'selection', {'seltype':'All'})
-        etree.SubElement(selection, 'selection_number', {}).text = '1'
+        etree.SubElement(selection, 'selection_number', {}).text = str(how_many_qs)
         etree.SubElement(selection, 'sourcebank_ref', ).text = pool_ref
 
     def createPool(self, pool_name, *args, **kwargs):
