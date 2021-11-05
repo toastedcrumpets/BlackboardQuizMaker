@@ -71,40 +71,52 @@ def render_latex(formula, display, *args, **kwargs):
     del im
     return data, width, height
 
-class Pool:
-    def __init__(self, pool_name, package, description="Created by BlackboardQuiz!", instructions="", preview=True):
-        """Initialises a question pool
-        """
-        self.package = package
-        self.pool_name = pool_name
-        self.preview = preview
-        self.question_counter = 0
-        
-        #Create the question data file
-        self.questestinterop = etree.Element("questestinterop")
-        assessment = etree.SubElement(self.questestinterop, 'assessment', {'title':self.pool_name})
+class BlackBoardObject:
+    def material(self, node, text):
+        material = etree.SubElement(node, 'material')
+        mat_extension = etree.SubElement(material, 'mat_extension')
+        mat_formattedtext = etree.SubElement(mat_extension, 'mat_formattedtext', {'type':'HTML'})
+        mat_formattedtext.text = text
 
-        md = etree.SubElement(assessment, 'assessmentmetadata')
+    def metadata(self, node, name='Assessment', typename='Pool', qtype='Multiple Choice', scoremax=0, weight=0, sectiontype='Subsection', instructor_notes='', partialcredit='false'):
+        md = etree.SubElement(node, name.lower()+'metadata')
         for key, val in [
                 ('bbmd_asi_object_id', '_'+str(self.package.bbid())+'_1'),
-                ('bbmd_asitype', 'Assessment'),
-                ('bbmd_assessmenttype', 'Pool'),
-                ('bbmd_sectiontype', 'Subsection'),
-                ('bbmd_questiontype', 'Multiple Choice'),
+                ('bbmd_asitype', name),
+                ('bbmd_assessmenttype', typename),
+                ('bbmd_sectiontype', sectiontype),
+                ('bbmd_questiontype', qtype),
                 ('bbmd_is_from_cartridge', 'false'),
                 ('bbmd_is_disabled', 'false'),
                 ('bbmd_negative_points_ind', 'N'),
                 ('bbmd_canvas_fullcrdt_ind', 'false'),
                 ('bbmd_all_fullcredit_ind', 'false'),
                 ('bbmd_numbertype', 'none'),
-                ('bbmd_partialcredit', ''),
+                ('bbmd_partialcredit', partialcredit),
                 ('bbmd_orientationtype', 'vertical'),
                 ('bbmd_is_extracredit', 'false'),
-                ('qmd_absolutescore_max', '0'),
-                ('qmd_weighting', '0'),
-                ('qmd_instructornotes', ''),
+                ('qmd_absolutescore_max', str(scoremax)),
+                ('qmd_weighting', str(weight)),
+                ('qmd_instructornotes', instructor_notes),
         ]:
             etree.SubElement(md, key).text = val
+        
+        
+class Pool(BlackBoardObject):
+    def __init__(self, pool_name, package, description="Created by BlackboardQuiz!", instructions="", preview=True, test=None):
+        """Initialises a question pool
+        """
+        self.package = package
+        self.pool_name = pool_name
+        self.preview = preview
+        self.question_counter = 0
+        self.test = test
+        
+        #Create the question data file
+        self.questestinterop = etree.Element("questestinterop")
+        assessment = etree.SubElement(self.questestinterop, 'assessment', {'title':self.pool_name})
+
+        self.metadata(assessment, 'Assessment', 'Pool', weight=0)
         
         rubric = etree.SubElement(assessment, 'rubric', {'view':'All'})
         flow_mat = etree.SubElement(rubric, 'flow_mat', {'class':'Block'})
@@ -115,27 +127,8 @@ class Pool:
         self.material(flow_mat, description)
 
         self.section = etree.SubElement(assessment, 'section')
-        md = etree.SubElement(self.section, 'sectionmetadata')
-        for key, val in [
-                ('bbmd_asi_object_id', '_'+str(self.package.bbid())+'_1'),
-                ('bbmd_asitype', 'Section'),
-                ('bbmd_assessmenttype', 'Pool'),
-                ('bbmd_sectiontype', 'Subsection'),
-                ('bbmd_questiontype', 'Multiple Choice'),
-                ('bbmd_is_from_cartridge', 'false'),
-                ('bbmd_is_disabled', 'false'),
-                ('bbmd_negative_points_ind', 'N'),
-                ('bbmd_canvas_fullcrdt_ind', 'false'),
-                ('bbmd_all_fullcredit_ind', 'false'),
-                ('bbmd_numbertype', 'none'),
-                ('bbmd_partialcredit', ''),
-                ('bbmd_orientationtype', 'vertical'),
-                ('bbmd_is_extracredit', 'false'),
-                ('qmd_absolutescore_max', '0'),
-                ('qmd_weighting', '0'),
-                ('qmd_instructornotes', ''),
-        ]:
-            etree.SubElement(md, key).text = val
+        
+        self.metadata(self.section, 'Section', 'Pool', weight=0)
         
         #Create the HTML file for preview
         self.htmlfile = "<html><head><style>li.correct, li.incorrect{list-style-type:none;} li.correct:before{content:'\\2713\\0020'}\nli.incorrect:before{content:'\\2718\\0020'}</style></head><body><p>Questions<ol>"
@@ -149,7 +142,10 @@ class Pool:
     def close(self):
         if self.preview:
             self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile+'</ol></body></html>')
-        self.package.embed_resource(self.pool_name, "assessment/x-bb-qti-pool", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
+        ref = self.package.embed_resource(self.pool_name, "assessment/x-bb-qti-pool", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
+        
+        if self.test is not None:
+            self.test.add_pool(ref)
         
     def addNumQ(self, title, text, answer, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
         if errfrac is None and erramt is None and (errlow is None or errhigh is None):
@@ -167,27 +163,7 @@ class Pool:
         #Add the question to the list of questions
         item = etree.SubElement(self.section, 'item', {'title':title, 'maxattempts':'0'})
 
-        md = etree.SubElement(item, 'itemmetadata')
-        for key, val in [
-                ('bbmd_asi_object_id', '_'+str(self.package.bbid())+'_1'),
-                ('bbmd_asitype', 'Item'),
-                ('bbmd_assessmenttype', 'Pool'),
-                ('bbmd_sectiontype', 'Subsection'),
-                ('bbmd_questiontype', 'Numeric'),
-                ('bbmd_is_from_cartridge', 'false'),
-                ('bbmd_is_disabled', 'false'),
-                ('bbmd_negative_points_ind', 'N'),
-                ('bbmd_canvas_fullcrdt_ind', 'false'),
-                ('bbmd_all_fullcredit_ind', 'false'),
-                ('bbmd_numbertype', 'none'),
-                ('bbmd_partialcredit', 'false'),
-                ('bbmd_orientationtype', 'vertical'),
-                ('bbmd_is_extracredit', 'false'),
-                ('qmd_absolutescore_max', '-1.0'),
-                ('qmd_weighting', '0'),
-                ('qmd_instructornotes', ''),
-        ]:
-            etree.SubElement(md, key).text = val
+        self.metadata(item, 'Item', 'Pool', qtype='Numeric', scoremax=-1.0, weight=0)
         
         presentation = etree.SubElement(item, 'presentation')
         flow1 = etree.SubElement(presentation, 'flow', {'class':'Block'})
@@ -929,11 +905,61 @@ class Pool:
         flow = etree.SubElement(node, 'flow_mat', {'class':'FORMATTED_TEXT_BLOCK'})
         self.material(flow, text)
         
-    def material(self, node, text):
-        material = etree.SubElement(node, 'material')
-        mat_extension = etree.SubElement(material, 'mat_extension')
-        mat_formattedtext = etree.SubElement(mat_extension, 'mat_formattedtext', {'type':'HTML'})
-        mat_formattedtext.text = text
+class Test(BlackBoardObject):
+    def __init__(self, test_name, package, description="Created by BlackboardQuiz!", instructions="", preview=True):
+        """Initialises a question pool
+        """
+        self.package = package
+        self.test_name = test_name
+        self.preview = preview
+        self.question_counter = 0
+        
+        #Create the question data file
+        self.questestinterop = etree.Element("questestinterop")
+        assessment = etree.SubElement(self.questestinterop, 'assessment', {'title':self.test_name})
+
+        self.metadata(assessment, 'Assessment', 'Test', scoremax='20.000', partialcredit='')
+
+        rubric = etree.SubElement(assessment, 'rubric', {'view':'All'})
+        flow_mat = etree.SubElement(rubric, 'flow_mat', {'class':'Block'})
+        self.material(flow_mat, instructions)
+
+        presentation_material = etree.SubElement(assessment, 'presentation_material')
+        flow_mat = etree.SubElement(presentation_material, 'flow_mat', {'class':'Block'})
+        self.material(flow_mat, description)
+
+        self.section = etree.SubElement(assessment, 'section')
+        self.metadata(self.section, 'Section', 'Test', scoremax=20)
+        
+        #Create the HTML file for preview
+        self.htmlfile = "<html><head><style>li.correct, li.incorrect{list-style-type:none;} li.correct:before{content:'\\2713\\0020'}\nli.incorrect:before{content:'\\2718\\0020'}</style></head><body><p>Questions<ol>"
+        
+        
+    def __enter__(self):
+        return self
+        
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def close(self):
+        if self.preview:
+            self.package.zf.writestr(self.test_name+'_preview.html', self.htmlfile+'</ol></body></html>')
+
+        self.package.embed_resource(self.test_name, "assessment/x-bb-qti-test", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
+
+    def add_pool(self, pool_ref):
+        subsec = etree.SubElement(self.section, 'section')
+
+        self.metadata(subsec, 'Section', 'Test', sectiontype='Random Block', scoremax=10.0, weight=10.0)
+        
+        selection_ordering = etree.SubElement(subsec, 'selection_ordering')
+        selection = etree.SubElement(selection_ordering, 'selection', {'seltype':'All'})
+        etree.SubElement(selection, 'selection_number', {}).text = '1'
+        etree.SubElement(selection, 'sourcebank_ref', ).text = pool_ref
+
+    def createPool(self, pool_name, *args, **kwargs):
+        kwargs['test'] = self
+        return Pool(pool_name, self.package, *args, **kwargs)
         
 class Package:
     def __init__(self, courseID="IMPORT"):
@@ -991,6 +1017,9 @@ class Package:
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
+    def createTest(self, test_name, *args, **kwargs):
+        return Test(test_name, self, *args, **kwargs)
+
     def createPool(self, pool_name, *args, **kwargs):
         return Pool(pool_name, self, *args, **kwargs)
 
@@ -1001,9 +1030,9 @@ class Package:
         resource.attrib[etree.QName(self.xmlNS, 'base')] = name
         resource.attrib[etree.QName(self.bbNS, 'file')] = name+'.dat'
         resource.attrib[etree.QName(self.bbNS, 'title')] = title
-        
         self.zf.writestr(name+'.dat', content)
-
+        return name
+        
     def embed_file_data(self, name, content):
         """Embeds a file (given a name and content) to the quiz and returns the
         unique id of the file, and the path to the file in the zip
