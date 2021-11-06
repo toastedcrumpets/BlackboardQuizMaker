@@ -72,6 +72,13 @@ def render_latex(formula, display, *args, **kwargs):
     return data, width, height
 
 class BlackBoardObject:
+
+    def setup_html(self, title):
+        self.htmlfile_head = "<html><head><style>li.correct {list-style-type:none; background-color: #e6ffcc;}\n li.incorrect{list-style-type:none; background-color:#ffcccc} li.correct:before{content:'\\2713\\0020'; color: darkgreen}\n li.incorrect:before{content:'\\2718\\0020'; color: red}\n li::marker { vertical-align: top; } .pool {border: 1px solid black; padding: 0.5em}\n .pool ul li {border-bottom:1px solid black; padding: 0.5em} </style></head><body>"
+        self.htmlfile_head += '<h1>'+title+'</h1><ol class="mainlist">'
+        self.htmlfile = ""
+        self.htmlfile_tail = '</ol></body></html>'
+    
     def material(self, node, text):
         material = etree.SubElement(node, 'material')
         mat_extension = etree.SubElement(material, 'mat_extension')
@@ -103,7 +110,7 @@ class BlackBoardObject:
         
         
 class Pool(BlackBoardObject):
-    def __init__(self, pool_name, package, description="Created by BlackboardQuiz!", instructions="", preview=True, test=None, points_per_q=10, questions_per_test=1):
+    def __init__(self, pool_name, package, description="Created by BlackboardQuiz!", instructions="", preview=False, test=None, points_per_q=10, questions_per_test=1):
         """Initialises a question pool
         """
         self.package = package
@@ -131,10 +138,9 @@ class Pool(BlackBoardObject):
         self.section = etree.SubElement(assessment, 'section')
         
         self.metadata(self.section, 'Section', 'Pool', weight=0)
-        
-        #Create the HTML file for preview
-        self.htmlfile = "<html><head><style>li.correct, li.incorrect{list-style-type:none;} li.correct:before{content:'\\2713\\0020'}\nli.incorrect:before{content:'\\2718\\0020'}</style></head><body><p>Questions<ol>"
 
+        self.setup_html('Pool:' + pool_name)
+        
     def __enter__(self):
         return self
         
@@ -143,11 +149,11 @@ class Pool(BlackBoardObject):
 
     def close(self):
         if self.preview:
-            self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile+'</ol></body></html>')
+            self.package.zf.writestr(self.pool_name+'_preview.html', self.htmlfile_head + self.htmlfile + self.htmlfile_tail)
         ref = self.package.embed_resource(self.pool_name, "assessment/x-bb-qti-pool", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
         
         if self.test is not None:
-            self.test.add_pool(ref, self.points_per_q, self.questions_per_test)
+            self.test.add_pool(self, ref)
         
     def addNumQ(self, title, text, answer, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
         if errfrac is None and erramt is None and (errlow is None or errhigh is None):
@@ -934,9 +940,9 @@ class Test(BlackBoardObject):
         self.metadata(self.section, 'Section', 'Test', scoremax=20)
         
         #Create the HTML file for preview
-        self.htmlfile = "<html><head><style>li.correct, li.incorrect{list-style-type:none;} li.correct:before{content:'\\2713\\0020'}\nli.incorrect:before{content:'\\2718\\0020'}</style></head><body><p>Questions<ol>"
-        
-        
+        self.setup_html('Test: '+test_name)
+        self.htmlfile += '<p>Tests are composed of questions drawn from pools. Below are the pools from which questions are drawn.</p>'
+                        
     def __enter__(self):
         return self
         
@@ -945,19 +951,26 @@ class Test(BlackBoardObject):
 
     def close(self):
         if self.preview:
-            self.package.zf.writestr(self.test_name+'_preview.html', self.htmlfile+'</ol></body></html>')
+            self.package.zf.writestr(self.test_name+'_preview.html', self.htmlfile_head + self.htmlfile + self.htmlfile_tail)
 
         self.package.embed_resource(self.test_name, "assessment/x-bb-qti-test", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
 
-    def add_pool(self, pool_ref, points_per_q=10, how_many_qs=1):
+    def add_pool(self, pool, pool_ref):
         subsec = etree.SubElement(self.section, 'section')
-
-        self.metadata(subsec, 'Section', 'Test', sectiontype='Random Block', scoremax=how_many_qs * points_per_q, weight=points_per_q)
-        
+        self.metadata(subsec, 'Section', 'Test', sectiontype='Random Block', scoremax=pool.questions_per_test * pool.points_per_q, weight=pool.points_per_q)
         selection_ordering = etree.SubElement(subsec, 'selection_ordering')
         selection = etree.SubElement(selection_ordering, 'selection', {'seltype':'All'})
-        etree.SubElement(selection, 'selection_number', {}).text = str(how_many_qs)
+        etree.SubElement(selection, 'selection_number', {}).text = str(pool.questions_per_test)
         etree.SubElement(selection, 'sourcebank_ref', ).text = pool_ref
+
+        self.htmlfile += '<div class="pool">'
+        self.htmlfile += '<h2>'+pool.pool_name+'</h2>'
+        self.htmlfile += '<p> Students will be presented with '+str(pool.questions_per_test)+' questions selected randomly from the pool below.</p>'
+        self.htmlfile += '<p> Each question is worth '+str(pool.points_per_q)+' marks.</p>'
+        self.htmlfile += '<ul>'
+        self.htmlfile += pool.htmlfile
+        self.htmlfile += '</ul>'
+        self.htmlfile += '</div>'
 
     def createPool(self, pool_name, *args, **kwargs):
         kwargs['test'] = self
