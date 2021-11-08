@@ -58,10 +58,14 @@ def render_latex(formula, display, *args, **kwargs):
         \usepackage{amsmath,amsfonts}
         \begin{document}"""
 
-    if display:
-        sympy.preview(r'\begin{align*}'+formula+r'\end{align*}', viewer='file', filename="out.png", euler=False, *args, **kwargs)
-    else:
-        sympy.preview('$'+formula+'$', viewer='file', filename="out.png", euler=False, *args, **kwargs)
+    try:
+        if display:
+            sympy.preview(r'\begin{align*}'+formula.strip()+r'\end{align*}', viewer='file', filename="out.png", euler=False, *args, **kwargs)
+        else:
+            sympy.preview('$'+formula+'$', viewer='file', filename="out.png", euler=False, *args, **kwargs)
+    except Exception as e:
+        print('ERROR: Failed rendering latex "'+formula.strip()+'"')
+        raise e
         
     with open('out.png', 'rb') as f:
         data = f.read()
@@ -942,6 +946,9 @@ class Test(BlackBoardObject):
         #Create the HTML file for preview
         self.setup_html('Test: '+test_name)
         self.htmlfile += '<p>Tests are composed of questions drawn from pools. Below are the pools from which questions are drawn.</p>'
+
+        self.htmlfile_example = ""
+        self.htmlfile_example_marks = 0
                         
     def __enter__(self):
         return self
@@ -952,6 +959,12 @@ class Test(BlackBoardObject):
     def close(self):
         if self.preview:
             self.package.zf.writestr(self.test_name+'_preview.html', self.htmlfile_head + self.htmlfile + self.htmlfile_tail)
+            self.package.zf.writestr(
+                self.test_name+'_example_preview.html',
+                self.htmlfile_head
+                + self.htmlfile_example
+                + '</ul><p><b>[Total test marks '+str(self.htmlfile_example_marks)+']</b></p><ul>'
+                + self.htmlfile_tail)
 
         self.package.embed_resource(self.test_name, "assessment/x-bb-qti-test", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
 
@@ -971,6 +984,23 @@ class Test(BlackBoardObject):
         self.htmlfile += pool.htmlfile
         self.htmlfile += '</ul>'
         self.htmlfile += '</div>'
+
+        
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup('<html>'+pool.htmlfile+'</html>', 'html.parser')
+        qs = soup.html.findChildren("li" , recursive=False)
+        import random
+        qs = random.sample(qs, pool.questions_per_test)
+
+        for q in qs:
+            p = soup.new_tag('p', class_="points", style="text-align:right;")
+            b = soup.new_tag('b',)
+            b.string = '['+str(pool.points_per_q)+' marks]'
+            p.append(b)
+            q.append(p)
+            self.htmlfile_example += q.prettify()
+            self.htmlfile_example_marks += pool.points_per_q
+        
 
     def createPool(self, pool_name, *args, **kwargs):
         kwargs['test'] = self
