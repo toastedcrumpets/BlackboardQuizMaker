@@ -1213,10 +1213,15 @@ class Package:
         question or answer.
         """
 
+        if display:
+            display = "block"
+        else:
+            display = "inline"
+            
         if True:
             #Here we use MathML instead of rendering images
             import latex2mathml.converter
-            output_bb = latex2mathml.converter.convert(formula)
+            output_bb = latex2mathml.converter.convert(formula, display= display)
             output_html = output_bb
             return output_bb, output_html
             
