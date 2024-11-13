@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 
-from lxml import etree
-import lxml.html as html
-import time
-import zipfile
-import re
-import os
-import uuid
-from xml.sax.saxutils import escape, unescape
-from PIL import Image
-from io import StringIO
-from io import BytesIO
 import itertools
+import os
+import random
+import re
+import time
+import uuid
+import zipfile
+from io import BytesIO, StringIO
+from xml.sax.saxutils import escape, unescape
+
+import lxml.html as html
 import scipy.stats
 import sympy
-import random
+from lxml import etree
+from PIL import Image
+
 
 def roundSF(val, sf):
     return float('{:.{p}g}'.format(val, p=sf))
@@ -47,6 +48,7 @@ def regexSF(val, sf):
     
 
 import subprocess
+
 dn = os.path.dirname(os.path.realpath(__file__))
 def render_latex(formula, display, *args, **kwargs):
     """Renders LaTeX expression to bitmap image data.
@@ -325,11 +327,11 @@ class Pool(BlackBoardObject):
             na = len(answers)
             nc = len(correct)
             wc = +100/nc
-            wi = -100/(na-nc)
+            wi = -100/(na-nc) if na != nc else 0
             weights = [(wc if i in correct else wi) for i in range(na)]
         else:
             assert len(weights)==len(answers)
-        
+
         self.question_counter += 1
         question_id = 'q'+str(self.question_counter)
         #Add the question to the list of questions
@@ -362,7 +364,7 @@ class Pool(BlackBoardObject):
         flow3 = etree.SubElement(flow2, 'flow', {'class':'FORMATTED_TEXT_BLOCK'})
 
         bb_question_text, html_question_text = self.package.process_string(text)
-        self.htmlfile += '<li>'+html_question_text+'<ul>'
+        self.htmlfile += '<li>'+html_question_text+'\n<ul>'
         self.material(flow3, bb_question_text)
 
         flow2 = etree.SubElement(flow1, 'flow', {'class':'RESPONSE_BLOCK'})
@@ -377,7 +379,7 @@ class Pool(BlackBoardObject):
             bb_answer_text, html_answer_text = self.package.process_string(text)
             self.flow_mat1(response_label, bb_answer_text)
             classname = "correct" if idx in correct else "incorrect"
-            self.htmlfile += '<li class="'+classname+'">'+html_answer_text+'</li>'
+            self.htmlfile += '\n<li class="'+classname+'">'+html_answer_text+'</li>\n'
             
         resprocessing = etree.SubElement(item, 'resprocessing', {'scoremodel':'SumOfScores'})
         outcomes = etree.SubElement(resprocessing, 'outcomes', {})
@@ -422,11 +424,11 @@ class Pool(BlackBoardObject):
             solutionmaterial = etree.SubElement(solution, 'solutionmaterial')
             self.flow_mat2(solutionmaterial, '')
         
-        self.htmlfile += '</ul>'
+        self.htmlfile += '\n</ul>'
         if len(positive_feedback)+len(negative_feedback)>0:
-            self.htmlfile += '<div>+:'+html_pos_feedback_text+'</div>'
-            self.htmlfile += '<div>-:'+html_neg_feedback_text+'</div>'
-        self.htmlfile += '</li>'
+            self.htmlfile += '\n<div>+:'+html_pos_feedback_text+'</div>'
+            self.htmlfile += '\n<div>-:'+html_neg_feedback_text+'</div>'
+        self.htmlfile += '\n</li>'
         print("Added MAQ "+repr(title))
             
     def addSRQ(self, title, text, answer='', positive_feedback="Good work", negative_feedback="That's not correct", rows=3, maxchars=0):
@@ -963,7 +965,7 @@ class Test(BlackBoardObject):
                 self.test_name+'_example_preview.html',
                 self.htmlfile_head
                 + self.htmlfile_example
-                + '</ul><p><b>[Total test marks '+str(self.htmlfile_example_marks)+']</b></p><ul>'
+                + '</li><p><b>[Total test marks '+str(self.htmlfile_example_marks)+']</b></p><ul>'
                 + self.htmlfile_tail)
 
         self.package.embed_resource(self.test_name, "assessment/x-bb-qti-test", '<?xml version="1.0" encoding="UTF-8"?>\n'+etree.tostring(self.questestinterop, pretty_print=False).decode('utf-8'))
