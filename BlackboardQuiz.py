@@ -868,7 +868,20 @@ class Pool(BlackBoardObject):
         self.htmlfile += '</li>'
         print("Added FITBQ "+repr(title))
 
-    def addCalcNumQ(self, title, text, xs, count, calc, errfrac=None, erramt=None, errlow=None, errhigh=None, positive_feedback="Good work", negative_feedback="That's not correct"):
+    def addCalcNumQ(self, title, text, xs, count, calc, 
+                    errfrac=None, erramt=None, errlow=None, errhigh=None, 
+                    positive_feedback="Good work", negative_feedback="That's not correct",
+                    validation=None,
+                    ):
+        
+        if validation is not None:
+            import copy
+            result = calc(copy.deepcopy(validation))
+            divisor = validation['answer'] if validation['answer'] != 0 else 1
+            err = abs((result['answer'] - validation['answer']) / divisor)
+            if err > 1e-3:
+                raise RuntimeError(f"Validation failed for question {title}\n result:{result}\n validation:{validation}\n")
+
         #This fancy loop goes over all permutations of the variables in xs
         i = 0
         while True:
